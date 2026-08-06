@@ -1,0 +1,10 @@
+frontend
+npx create-react-app ./
+npm install -D tailwindcss@3
+npx tailwindcss init
+
+backend
+npm init -y
+npm i express nodemon dotenv
+npm i cookie-parser
+npm i cors
