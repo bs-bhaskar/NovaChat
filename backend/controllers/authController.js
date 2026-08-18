@@ -1,11 +1,13 @@
 
 
-//step 1 Send OTP
 
 const User = require("../models/User");
+const sendOtpToEmail = require("../services/emailService");
 const otpGenerate = require("../utils/otpGenerater");
 const response = require("../utils/responseHandler");
+const twilloService=require('../services/twilloService.js')
 
+//step 1 Send OTP
 const sendOtp = async(req,res)=>{
     const {phoneNumber,phoneSuffix,email}=req.body;
     const otp=otpGenerate();
@@ -21,7 +23,7 @@ const sendOtp = async(req,res)=>{
             user.emailOtp=otp;
             user.emailOtpExpiry=expiry;
             await user.save();
-
+            await sendOtpToEmail(email,otp)
             return response(res,200,'OTP sent to your email',{email})
         }
         if(!phoneNumber || !phoneSuffix){
@@ -32,7 +34,7 @@ const sendOtp = async(req,res)=>{
         if(!user){
             user= await new User ({phoneNumber,phoneSuffix})
         }
-
+        await twilloService.sendOtpToPhoneNumber(fullPhoneNumber)
         await user.save();
 
         return response(res,200,'otp send successfully',user)
