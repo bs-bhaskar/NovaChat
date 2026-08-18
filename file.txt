@@ -10,3 +10,5 @@ npm i cookie-parser
 npm i cors
 npm i mongoose
 npm i mongodb
+npm i twilio
+npm install nodemailer
