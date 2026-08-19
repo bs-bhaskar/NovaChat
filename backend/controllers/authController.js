@@ -43,3 +43,44 @@ const sendOtp = async(req,res)=>{
         return response(res,500,'Internal server error')
     }
 }
+
+// step 2 verify OTP
+
+const verifyOtp=async(req,res)=>{
+    const {phoneNumber,phoneSuffix,email,otp}=req.body;
+    try {
+        let user;
+        if(email){
+            user= await User.findOne({email})
+            if(!user){
+                return response(res,404,'User not found')
+            }
+            const now=new Date();
+            if(!user.emailOtp || String(user.emailOtp)!==String(otp) || now>new Date(user.emailOtpExpiry)){
+                return response(res,400,'Invalid Expire otp')
+            };
+            user.isVarified=true;
+            user.emailOtp=null;
+            user.emailOtpExpiry=null;
+            await user.save();
+        }
+        else{
+            if(!phoneNumber || !phoneSuffix){
+                return response(res,400,'Phone number and suffix are required')
+            }
+            const fullPhoneNumber=`${phoneSuffix}${phoneNumber}`;
+            user=await User.findOne({phoneNumber});
+            if(!user){
+                return response(res,404,'User not found')
+            }
+            const result= await twilloService.verifyOtp(fullPhoneNumber,otp)
+            if(result.status !== 'approved'){
+                return response(res,400,'Invalid otp'); 
+            }
+            user.isVarified=true;
+            await user.save();
+        }
+    } catch (error) {
+        
+    }
+}
