@@ -5,7 +5,8 @@ const User = require("../models/User");
 const sendOtpToEmail = require("../services/emailService");
 const otpGenerate = require("../utils/otpGenerater");
 const response = require("../utils/responseHandler");
-const twilloService=require('../services/twilloService.js')
+const twilloService=require('../services/twilloService.js');
+const generateToken = require("../utils/generateToken.js");
 
 //step 1 Send OTP
 const sendOtp = async(req,res)=>{
@@ -80,7 +81,19 @@ const verifyOtp=async(req,res)=>{
             user.isVarified=true;
             await user.save();
         }
+        const token=generateToken(user?._id);
+        res.cookie("auth_token",token,{
+            httpOnly:true,
+            maxAge:1000*60*60*24*365
+        });
+        return response(res,200,'Otp Verified successfully',{token,user})
     } catch (error) {
-        
+        console.error(error);
+        return response(res,500,'Internal server error')
     }
+}
+
+module.exports={
+    sendOtp,
+    verifyOtp
 }
