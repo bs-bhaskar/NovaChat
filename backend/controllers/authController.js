@@ -18,11 +18,12 @@ const sendOtp = async(req,res)=>{
         if(email){
             user= await User.findOne({email})
 
-            if(!User){
+            if(!user){
                 user = new User({email})
             }
             user.emailOtp=otp;
             user.emailOtpExpiry=expiry;
+
             await user.save();
             await sendOtpToEmail(email,otp)
             return response(res,200,'OTP sent to your email',{email})
