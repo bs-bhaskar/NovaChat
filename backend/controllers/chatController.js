@@ -2,7 +2,6 @@ const {uploadFileToCloudinary}= require("../config/cloudinaryConfig");
 const Conversation = require("../models/Conversation");
 const response = require('../utils/responseHandler')
 const Message = require('../models/Message');
-const { useId } = require("react");
 
 exports.sendMessage=async (req,res)=>{
     try {
@@ -14,7 +13,6 @@ exports.sendMessage=async (req,res)=>{
         let conversation= await Conversation.findOne({
             participants:participants
         }); 
-
         if(!conversation){
             conversation=new Conversation({
                 participants
@@ -26,7 +24,7 @@ exports.sendMessage=async (req,res)=>{
         let contentType=null
 
         // handle file upload if file is present
-        if(!file){
+        if(file){
             const uploadFile= await uploadFileToCloudinary(file);
 
             if(!uploadFile?.secure_url){
@@ -34,10 +32,10 @@ exports.sendMessage=async (req,res)=>{
             };
             imageOrVideoUrl=uploadFile?.secure_url;
 
-            if(file.mimetype.startwith('image')){
+            if(file.mimetype.startWith('image')){
                 contentType="image"
             }
-            else if(file.mimetype.startwith('video')){
+            else if(file.mimetype.startWith('video')){
                 contentType="video"
             }
             else{
@@ -55,6 +53,7 @@ exports.sendMessage=async (req,res)=>{
             conversation:conversation?._id,
             sender:senderId,
             receiver:receiverId,
+            content,
             contentType,
             imageOrVideoUrl,
             messageStatus
@@ -63,7 +62,7 @@ exports.sendMessage=async (req,res)=>{
         await message.save();
 
         if(message?.content){
-            conversation.lastMessage=message?.id
+            conversation.lastMessage=message._id
         }
         conversation.unreadCount+=1;
         await conversation.save()
@@ -148,7 +147,7 @@ exports.markAsRead = async(req, res)=>{
         })
 
         await Message.updateMany(
-            {_id:{$in :messageIds}, receiver:useId},
+            {_id:{$in :messageIds}, receiver:userId},
             {$set:{messageStatus:"read"}}
         );
 
