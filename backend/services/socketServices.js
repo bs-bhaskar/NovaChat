@@ -1,6 +1,7 @@
 const {Server} = require('socket.io')
 const User = require("../models/User");
 const Message = require('../models/Message');
+const { useId } = require('react');
 
 // map to store online users => userId: socketId
 const onlineUsers = new Map();
@@ -171,10 +172,38 @@ const initializeSocket = (server) => {
     const handleDisconnected= async()=>{
         if(!userId) return;
         try {
-            onlineUsers.delete(userId)
+            onlineUsers.delete(userId);
+            // clear all typing timeouts
+            if(typingUsers.has(userId)){
+                const userTyping= typingUsers.get(userId)
+                Object.keys(userTyping).forEach((key)=>{
+                    if(key.endsWith('_timeout')) clearTimeout(userTyping[key])
+                })
+                typingUsers.delete(userId)
+            }
+            await User.findByIdAndUpdate(userId,{
+                isOnline:false,
+                lastSeen:new Date(),
+
+            })
+            io.emit("user_status",{
+                userId,
+                isOnline:false,
+                lastSeen:new Date(),
+            })
+
+            socket.leave(useId),
+            console.log(`user ${userId} disconnected`)
         } catch (error) {
-            
+            console.error("Error handling Disconnection",error)
         }
     }
+    // disconnect event
+    socket.on("disconnect",handleDisconnected)
     });
+    // attach the online user map to the coket server for external user
+    io.socketUserMap= onlineUsers
+
+    return io;
 };
+module.exports=initializeSocket
