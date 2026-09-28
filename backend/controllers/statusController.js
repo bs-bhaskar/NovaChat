@@ -45,7 +45,6 @@ exports.createStatus=async (req,res)=>{
             user:userId,
             content:mediaUrl || content,
             contentType:finalContentType,
-            imageOrVideoUrl:mediaUrl,
             expiresAt
         });
 

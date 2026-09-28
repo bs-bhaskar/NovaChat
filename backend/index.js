@@ -6,6 +6,7 @@ const connectDb = require('./config/dbConnect');
 const bodyParser=require('body-parser')
 const authRoute = require('./routes/authRoute')
 const chatRoute = require('./routes/chatRoute')
+const statusRoute= require('./routes/statusRoute')
 const http=require('http')
 const initializeSocket=require('./services/socketServices')
 
@@ -43,7 +44,8 @@ app.use((req,res,next)=>{
 //Routes
 app.use('/api/auth',authRoute)
 app.use('/api/chat', chatRoute)
+app.use('/api/status',statusRoute)
 
-app.listen(PORT, ()=>{
+server.listen(PORT, ()=>{
     console.log(`server running... on port ${PORT}`);
 }) 
