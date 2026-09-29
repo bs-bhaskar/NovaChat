@@ -71,6 +71,16 @@ exports.sendMessage=async (req,res)=>{
         .populate("sender","username profilePicture")
         .populate("receiver","username profilePicture")
 
+        // Emit socket event for realtime
+        if(req.io && req.socketUserMap){
+            const receiverSocketId=req.socketUserMap.get(receiverId)
+            if(receiverId){
+                req.io.to(receiverSocketId).emit("receive_message",populatedMessage);
+                message.messageStatus="delivered";
+                await message.save()
+            }
+        }
+
         return response(res, 201, "message send successfully", populatedMessage);
     } catch (error) {
         console.error(error);
@@ -151,6 +161,21 @@ exports.markAsRead = async(req, res)=>{
             {$set:{messageStatus:"read"}}
         );
 
+        // notify to original sender
+        if(req.io && req.socketUserMap){
+            for (const message of messages){
+                const senderSocketId=req.socketUserMap.get(message.sender.toString())
+                if(senderSocketId){
+                    const updateMessage={
+                        _id:message._id,
+                        messageStatus:"read",                        
+                    };
+                    req.io.to(senderSocketId).emit("Message_read", updateMessage)
+                    await message.save()
+                }
+            }
+        }
+
         return response(res, 200, "Messages mark as read", messages)
     } catch (error) {
         console.error(error);
@@ -173,6 +198,14 @@ exports.deleteMessages=async (req, res)=>{
         }
 
         await message.deleteOne();
+
+        // Emit socket event 
+        if(req.io && req.socketUserMap){
+            const receiverSocketId=req.socketUserMap.get(message.receiver.toString())
+            if(receiverSocketId){
+                req.io.to(receiverSocketId).emit("message_deleted", messageId)
+            }        
+        }
 
         return response(res, 200, "Message deleted successfully")
     } catch (error) {
