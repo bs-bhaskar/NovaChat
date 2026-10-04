@@ -8,7 +8,8 @@ import useUserStore from "../../store/useUserStore";
 import { useForm } from "react-hook-form";
 import useThemeStore from "../../store/themeStore";
 import { motion } from "framer-motion";
-import { FaChevronDown, FaWhatsapp } from "react-icons/fa";
+import Spinner from "../../utils/Spinner";
+import { FaChevronDown, FaUber, FaUser, FaWhatsapp } from "react-icons/fa";
 
 // validation schema
 const loginValidationSchema = yup
@@ -76,6 +77,7 @@ const Login = () => {
   const navigate = useNavigate();
   const { setUser } = useUserStore();
   const { theme, setTheme } = useThemeStore();
+  const [loading, setLoading]=useState(false)
 
   const {
     register: loginRegister,
@@ -107,6 +109,17 @@ const Login = () => {
       country.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
     country.dialCode.includes(searchTerm)
   )
+
+  const onLoginSubmit=async()=>{
+    try {
+      setLoading(true)
+      if(email){
+        const response= await setOtp
+      }
+    } catch (error) {
+      
+    }
+  }
 
   const ProgressBar = () => {
     return (
@@ -148,7 +161,7 @@ const Login = () => {
         <h1
           className={`text-3xl font-bold text-center mb-6 ${theme === "dark" ? "text-white" : "text-gray-800"}`}
         >
-          Whatsapp Login
+          WhatsApp Login
         </h1>
 
         <ProgressBar />
@@ -192,12 +205,30 @@ const Login = () => {
                   )}
 
                 </div>
-                <input type="text" {...loginRegister("phoneNumber")} value={phoneNumber} onChange={(e)=>setPhoneNumber(e.target.value)} placeholder="phone number" className={`w-2/3 px-4 py-2 border ${theme==="dark"?"bg-gray-700 border-gray-600 text-white":"bg-white bg-gray-300"} rounded-md focus:outline-none focus:right-2 focus:ring-green-500 ${loginErrors.phoneNumber?"border-red-500":""}`} />
+                <input type="text" {...loginRegister("phoneNumber")} value={phoneNumber} onChange={(e)=>setPhoneNumber(e.target.value)} placeholder="Phone number" className={`w-2/3 px-4 py-2 border ${theme==="dark"?"bg-gray-700 border-gray-600 text-white":"bg-white bg-gray-300"} rounded-md focus:outline-none focus:right-2 focus:ring-green-500 ${loginErrors.phoneNumber?"border-red-500":""}`} />
               </div>
               {loginErrors.phoneNumber && (
                 <p className="text-red-500 text-sm">{loginErrors.phoneNumber.message}</p>
               )}
             </div>
+
+              {/* diverder with or */}
+              <div className="flex items-center my-4">
+                <div className="flex-grow h-px bg-gray-300"/>
+                  <span className="mx-3 text-gray-500 text-sm font-medium">or</span>
+                <div className="flex-grow h-px bg-gray-300"/>
+              </div>
+              {/* Email input box */}
+              <div className={`flex items-center border rounded-md px-3 py-2 ${theme==='dark'?"bg-gray-700 border-gray-600":"bg-white border-gray-300"}`}>
+                <FaUser className={`mr-2 text-gray-400 ${theme==='dark'?"text-gray-400":"text-gray-500"}`}/>
+                <input type="email" {...loginRegister("email")} value={email} onChange={(e)=>setEmail(e.target.value)} placeholder="Email (optional)" className={`w-full bg-transparent focus:outline-none ${theme==="dark"?"text-white":"bg-black"} ${loginErrors.email?"border-red-500":""}`} />
+                {loginErrors.phoneNumber && (
+                  <p className="text-red-500 text-sm">{loginErrors.phoneNumber.message}</p>
+                )}
+              </div>
+              <button type="submit" className="w-full bg-green-500 text-white py-2 rounded-md hover:bg-green-600 transition">
+                {loading ? <Spinner/>:"Send OTP"}
+              </button>
           </form>
         )}
       </motion.div>
