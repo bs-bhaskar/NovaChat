@@ -1,7 +1,6 @@
 const {Server} = require('socket.io')
 const User = require("../models/User");
 const Message = require('../models/Message');
-const { useId } = require('react');
 
 // map to store online users => userId: socketId
 const onlineUsers = new Map();
