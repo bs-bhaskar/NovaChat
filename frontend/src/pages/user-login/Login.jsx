@@ -3,13 +3,13 @@ import useLoginStore from "../../store/useLoginStore";
 import countries from "../../utils/countries";
 import * as yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
-import { data, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import useUserStore from "../../store/useUserStore";
 import { useForm } from "react-hook-form";
 import useThemeStore from "../../store/themeStore";
-import { motion, usePageInView } from "framer-motion";
+import { motion } from "framer-motion";
 import Spinner from "../../utils/Spinner";
-import { FaChevronDown, FaUber, FaUser, FaWhatsapp, FaArrowLeft, FaPlus } from "react-icons/fa";
+import { FaChevronDown, FaUser, FaWhatsapp, FaArrowLeft, FaPlus } from "react-icons/fa";
 import { toast } from "react-toastify";
 import {
   sendOtp,
@@ -82,7 +82,7 @@ const Login = () => {
   const [error, setError] = useState("");
   const navigate = useNavigate();
   const { setUser } = useUserStore();
-  const { theme, setTheme } = useThemeStore();
+  const { theme} = useThemeStore();
   const [loading, setLoading]=useState(false)
 
   const {
@@ -120,22 +120,22 @@ const Login = () => {
     try {
       setLoading(true)
       if(email){
-        const response= await setOtp(null, null, email)
+        const response= await sendOtp(null, null, email)
         if(response.status==='success'){
-          toast.info("OTP is send to your email")
+          toast.info("OTP has been sent to your email")
           setUserPhoneData({email})
           setStep(2)
         }
       }else{
         const response = await sendOtp(phoneNumber, selectedCountry.dialCode)
         if(response.status==='success'){
-          toast.info("OTP is send to your phone number")
+          toast.info("OTP has been sent to your phone number")
           setUserPhoneData({phoneNumber, phoneSuffix:selectedCountry.dialCode})
           setStep(2)
         }
       }
     } catch (error) {
-      console.log(Error);
+      console.error(error);
       setError(error.message || "Failed to send OTP")
     }
     finally{
@@ -157,7 +157,7 @@ const Login = () => {
         response=await verifyOtp(userPhoneData.phoneNumber, userPhoneData.phoneSuffix, otpString)
       }
       if(response.status==='success'){
-        toast.success("OTP varify successfully")
+        toast.success("OTP varified successfully")
         const user= response.data?.user
         if(user?.username && user?.profilePicture){
           setUser(user)
@@ -169,21 +169,22 @@ const Login = () => {
         }
       }
     } catch (error) {
-      console.log(Error);
-      setError(error.message || "Failed to send OTP")
+      console.error(error);
+      setError(error.message || "Failed to verify OTP")
     }
     finally{
       setLoading(false)
     }
   }
 
-  const handleFileChange = (e)=>{
-    const file=e.target.files[0]
-    if(file){
-      setProfilePicture(file)
-      setProfilePicture(URL.createObjectURL(false))
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+
+    if (file) {
+        setProfilePictureFile(file);
+        setProfilePicture(URL.createObjectURL(file));
     }
-  }
+  };
 
   const onProfileSubmit = async(data)=>{
     try {
@@ -201,7 +202,7 @@ const Login = () => {
       navigate('/')
       resetLoginState()
     } catch (error) {
-      console.log(Error);
+      console.error(error);
       setError(error.message || "Failed to update user profile")
     }
     finally{
@@ -233,7 +234,7 @@ const Login = () => {
   };
 
   const handleBack=()=>{
-    setOtp(1)
+    setStep(1)
     setUserPhoneData(null)
     setOtp(["", "", "", "", "", ""])
     setError("")
@@ -310,7 +311,7 @@ const Login = () => {
                   )}
 
                 </div>
-                <input type="text" {...loginRegister("phoneNumber")} value={phoneNumber} onChange={(e)=>setPhoneNumber(e.target.value)} placeholder="Phone number" className={`w-2/3 px-4 py-2 border ${theme==="dark"?"bg-gray-700 border-gray-600 text-white":"bg-white bg-gray-300"} rounded-md focus:outline-none focus:right-2 focus:ring-green-500 ${loginErrors.phoneNumber?"border-red-500":""}`} />
+                <input type="text" {...loginRegister("phoneNumber")} value={phoneNumber} onChange={(e)=>setPhoneNumber(e.target.value)} placeholder="Phone number" className={`w-2/3 px-4 py-2 border ${theme==="dark"?"bg-gray-700 border-gray-600 text-white":"bg-white border-gray-300"} rounded-md focus:outline-none focus:right-2 focus:ring-green-500 ${loginErrors.phoneNumber?"border-red-500":""}`} />
               </div>
               {loginErrors.phoneNumber && (
                 <p className="text-red-500 text-sm">{loginErrors.phoneNumber.message}</p>
@@ -324,11 +325,34 @@ const Login = () => {
                 <div className="flex-grow h-px bg-gray-300"/>
               </div>
               {/* Email input box */}
-              <div className={`flex items-center border rounded-md px-3 py-2 ${theme==='dark'?"bg-gray-700 border-gray-600":"bg-white border-gray-300"}`}>
-                <FaUser className={`mr-2 text-gray-400 ${theme==='dark'?"text-gray-400":"text-gray-500"}`}/>
-                <input type="email" {...loginRegister("email")} value={email} onChange={(e)=>setEmail(e.target.value)} placeholder="Email (optional)" className={`w-full bg-transparent focus:outline-none ${theme==="dark"?"text-white":"bg-black"} ${loginErrors.email?"border-red-500":""}`} />
-                {loginErrors.phoneNumber && (
-                  <p className="text-red-500 text-sm">{loginErrors.phoneNumber.message}</p>
+              <div>
+                <div className={`flex items-center border rounded-md px-3 py-2 ${
+                  theme === "dark"
+                    ? "bg-gray-700 border-gray-600"
+                    : "bg-white border-gray-300"
+                }`}>
+
+                  <FaUser className={`mr-2 ${
+                    theme === "dark" ? "text-gray-400" : "text-gray-500"
+                  }`} />
+
+                  <input
+                    type="email"
+                    {...loginRegister("email")}
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Email (optional)"
+                    className={`w-full bg-transparent focus:outline-none ${
+                      theme === "dark" ? "text-white" : "text-black"
+                    }`}
+                  />
+
+                </div>
+
+                {loginErrors.email && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {loginErrors.email.message}
+                  </p>
                 )}
               </div>
               <button type="submit" className="w-full bg-green-500 text-white py-2 rounded-md hover:bg-green-600 transition">
@@ -338,9 +362,15 @@ const Login = () => {
         )}
         {step === 2 && (
           <form onSubmit={handleOtpSubmit(onOtpSubmit)} className="space-y-4">
-            <p className={`text-center ${theme==='dark' ? "text-gray-300" : "text-gray-600"} mb-4`}>
-              Please enter the  6-digit OTP send to your {userPhoneData ? userPhoneData.phoneSuffix : "Email"} {" "}
-              {userPhoneData.phoneNumber && userPhoneData?.phoneNumber}
+            <p
+              className={`text-center ${
+                theme === "dark" ? "text-gray-300" : "text-gray-600"
+              } mb-4`}
+            >
+              Please enter the 6-digit OTP sent to your{" "}
+              {userPhoneData?.email
+                ? userPhoneData.email
+                : `${userPhoneData?.phoneSuffix} ${userPhoneData?.phoneNumber}`}
             </p>
             <div className="flex justify-between">
               {otp.map((digit, index)=>(
@@ -385,7 +415,7 @@ const Login = () => {
             <div className="relative">
               <FaUser className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${theme==='dark'?"text-gray-400":"text-gray-400"}`}/>
 
-                <input {...profileRegister("Username")} type="text" placeholder="username" className={`w-full pl-10 pr-3 py-2 border ${theme==='dark'? "bg-gray-700 border-gray-600 text-white":"bg-white border-gray-300"} rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 text-lg`} />
+                <input {...profileRegister("username")} type="text" placeholder="Username" className={`w-full pl-10 pr-3 py-2 border ${theme==='dark'? "bg-gray-700 border-gray-600 text-white":"bg-white border-gray-300"} rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 text-lg`} />
                 {profileErrors.username && (
                   <p className="text-red-500 text-sm mt-1">
                     {profileErrors.username.message}
