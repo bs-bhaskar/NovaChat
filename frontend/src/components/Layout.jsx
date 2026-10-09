@@ -4,10 +4,12 @@ import useThemeStore from '../store/themeStore'
 import Sidebar from './Sidebar'
 import { AnimatePresence, motion } from 'framer-motion';
 import ChatWindow from '../pages/chatSection/ChatWindow'
+import { useLocation } from 'react-router-dom'
 
 const Layout = ({children, isThemeDialogOpen, toggleThemeDialog, isStatusPreviewOpen, statusPreviewContent}) => {
     const selectedContact= useLayoutStore(state=>state.selectedContact)
     const setSelectedContact= useLayoutStore(state=>state.setSelectedContact)
+    const location= useLocation()
     const [isMobile, setIsMobile]= useState(window.innerWidth<768)
     const {theme, setTheme}= useThemeStore()
 
@@ -44,12 +46,12 @@ const Layout = ({children, isThemeDialogOpen, toggleThemeDialog, isStatusPreview
               Choose a Theme
             </h2>
             <div className='space-y-4'>
-              <label htmlFor="" className='flex items-center space-x-3 cursor-pointer'>
-                <input type='radio' value='light' checked={theme==='light'} onChange={()=>setTheme("light")} className='form-radio text-blue-600' />
+              <label htmlFor="light-theme" className='flex items-center space-x-3 cursor-pointer'>
+                <input id="light-theme" type='radio' value='light' checked={theme==='light'} onChange={()=>setTheme("light")} className='form-radio text-blue-600' />
                 <span>Light</span>
               </label>
-              <label htmlFor="" className='flex items-center space-x-3 cursor-pointer'>
-                <input type='radio' value='light' checked={theme==='dark'} onChange={()=>setTheme("dark")} className='form-radio text-blue-600' />
+              <label htmlFor="dark-theme" className='flex items-center space-x-3 cursor-pointer'>
+                <input id="dark-theme" type='radio' value='dark' checked={theme==='dark'} onChange={()=>setTheme("dark")} className='form-radio text-blue-600' />
                 <span>Dark</span>
               </label>
             </div>
