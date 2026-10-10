@@ -5,7 +5,9 @@ const Message = require('../models/Message');
 
 exports.sendMessage=async (req,res)=>{
     try {
-        const {senderId, receiverId, content, messageStatus}=req.body;
+        // const {senderId, receiverId, content, messageStatus}=req.body;
+        const { receiverId, content } = req.body;
+        const senderId = req.user.userId;
         const file=req.file
 
         const participants=[senderId, receiverId].sort();
@@ -32,10 +34,10 @@ exports.sendMessage=async (req,res)=>{
             };
             imageOrVideoUrl=uploadFile?.secure_url;
 
-            if(file.mimetype.startWith('image')){
+            if(file.mimetype.startsWith('image')){
                 contentType="image"
             }
-            else if(file.mimetype.startWith('video')){
+            else if(file.mimetype.startsWith('video')){
                 contentType="video"
             }
             else{
@@ -62,20 +64,20 @@ exports.sendMessage=async (req,res)=>{
         await message.save();
 
         if(message?.content){
-            conversation.lastMessage=message._id
+            conversation.lastMessage=message?._id
         }
         conversation.unreadCount+=1;
         await conversation.save()
 
-        const populatedMessage=await Message.findOne(message?._id)
+        const populatedMessage=await Message.findById(message?._id)
         .populate("sender","username profilePicture")
         .populate("receiver","username profilePicture")
 
         // Emit socket event for realtime
         if(req.io && req.socketUserMap){
-            const receiverSocketId=req.socketUserMap.get(receiverId)
-            if(receiverId){
-                req.io.to(receiverSocketId).emit("receive_message",populatedMessage);
+            const receiverSocketId = req.socketUserMap.get(receiverId.toString());
+            if (receiverSocketId) {
+                req.io.to(receiverSocketId).emit("receive_message", populatedMessage);
                 message.messageStatus="delivered";
                 await message.save()
             }
@@ -119,7 +121,7 @@ exports.getMessages=async(req,res)=>{
         if(!conversation){
             return response(res,404,'conversation not found')
         }
-        if(!conversation.participants.includes(userId)){
+        if (!conversation.participants.some(id => id.toString() === userId.toString())) {
             return response(res,403,'not authorized to view this conversation')
         }
 
@@ -171,7 +173,6 @@ exports.markAsRead = async(req, res)=>{
                         messageStatus:"read",                        
                     };
                     req.io.to(senderSocketId).emit("Message_read", updateMessage)
-                    await message.save()
                 }
             }
         }
@@ -193,7 +194,7 @@ exports.deleteMessages=async (req, res)=>{
             return response(res, 404, 'Message not found')
         }
         
-        if(message.sender.toString() !== userId){
+        if (message.sender.toString() !== userId.toString()) {
             return response(res, 403, "Not authorized to delete this message")
         }
 

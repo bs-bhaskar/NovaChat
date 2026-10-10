@@ -10,9 +10,9 @@ import {MdRadioButtonChecked} from "react-icons/md"
 const Sidebar = () => {
   const location= useLocation()
     const [isMobile, setIsMobile]= useState(window.innerWidth<768)
-    const {theme, setTheme}= useThemeStore()
+    const {theme}= useThemeStore()
     const {user}=useUserStore()
-    const {activeTab, setActiveTab, selectedContact, setSelectedContact}=useLayoutStore()
+    const {activeTab, setActiveTab, selectedContact}=useLayoutStore()
 
 
     useEffect(()=>{
