@@ -1,7 +1,6 @@
 const {uploadFileToCloudinary}= require("../config/cloudinaryConfig");
 const Status = require("../models/Status");
 const response = require('../utils/responseHandler')
-const Message = require('../models/Message');
 
 exports.createStatus=async (req,res)=>{
     try {
@@ -21,10 +20,10 @@ exports.createStatus=async (req,res)=>{
             };
             mediaUrl=uploadFile?.secure_url;
 
-            if(file.mimetype.startWith('image')){
+            if(file.mimetype.startsWith('image')){
                 finalContentType="image"
             }
-            else if(file.mimetype.startWith('video')){
+            else if(file.mimetype.startsWith('video')){
                 finalContentType="video"
             }
             else{
@@ -50,7 +49,7 @@ exports.createStatus=async (req,res)=>{
 
         await status.save();
 
-        const populatedStatus=await Status.findOne(status._id)
+        const populatedStatus=await Status.findById(status._id)
         .populate("user","username profilePicture")
         .populate("viewers","username profilePicture")
 
@@ -93,7 +92,7 @@ exports.viewStatus=async(req,res)=>{
         if(!status){
             return response(res,404,"status not found")
         }
-        if(status.viewers.includes(userId)){
+        if (!status.viewers.some(id => id.toString() === userId.toString())) {
             status.viewers.push(userId)
             await status.save()
 
@@ -104,7 +103,7 @@ exports.viewStatus=async(req,res)=>{
             // Emit socket event 
             if(req.io && req.socketUserMap){
             // Broadcast to all connecting users except creator
-            const statusOwnerSocketId=req.socketUserMap.get(status.user._id.toString())
+            const statusOwnerSocketId = req.socketUserMap.get(status.user.toString());
             if(statusOwnerSocketId){
                 const viewData={
                     statusId,
@@ -112,7 +111,7 @@ exports.viewStatus=async(req,res)=>{
                     totalViewers:updatedStatus.viewers.length,
                     viewers:updatedStatus.viewers
                 }
-                res.io.to(statusOwnerSocketId).emit("status_viewed", viewData)
+                req.io.to(statusOwnerSocketId).emit("status_viewed", viewData)
             }else{
                 console.log('status owener not connected')
             }

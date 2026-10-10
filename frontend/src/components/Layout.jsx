@@ -4,12 +4,10 @@ import useThemeStore from '../store/themeStore'
 import Sidebar from './Sidebar'
 import { AnimatePresence, motion } from 'framer-motion';
 import ChatWindow from '../pages/chatSection/ChatWindow'
-import { useLocation } from 'react-router-dom'
 
 const Layout = ({children, isThemeDialogOpen, toggleThemeDialog, isStatusPreviewOpen, statusPreviewContent}) => {
     const selectedContact= useLayoutStore(state=>state.selectedContact)
     const setSelectedContact= useLayoutStore(state=>state.setSelectedContact)
-    const location= useLocation()
     const [isMobile, setIsMobile]= useState(window.innerWidth<768)
     const {theme, setTheme}= useThemeStore()
 
