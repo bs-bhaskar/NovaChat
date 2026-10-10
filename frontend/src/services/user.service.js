@@ -1,5 +1,5 @@
 import axiosInstance from "./url.service"
-
+import useUserStore from "../store/useUserStore";
 
 export const sendOtp=async(phoneNumber,phoneSuffix,email)=>{
     try {
@@ -35,12 +35,16 @@ export const updateUserProfile=async(updateData)=>{
 export const checkUserAuth=async()=>{
     try {
         const response=await axiosInstance.get('/auth/check-auth');
-        if(response.data.status==='success'){
-            return {isAuthenticated:true, user:response?.data?.data}
+        if (response.data.status === "success") {
+            return {
+                isAuthenticated: true,
+                user: response.data.data
+            };
         }
-        else if(response.data.status=== "error"){
-            return {isAuthenticated:false}
-        }
+
+        return {
+            isAuthenticated: false
+        };
 
     } catch (error) {
         throw error.response ? error.response.data : error.message;        
@@ -48,15 +52,19 @@ export const checkUserAuth=async()=>{
 }
 
 
-export const logoutUser=async()=>{
+export const logoutUser = async () => {
     try {
-        const response=await axiosInstance.get('/auth/logout');
-        return response.data
+        const response = await axiosInstance.get('/auth/logout');
 
+        if (response.data.status === "success") {
+            useUserStore.getState().clearUser();
+        }
+
+        return response.data;
     } catch (error) {
-        throw error.response ? error.response.data : error.message;        
+        throw error.response ? error.response.data : error.message;
     }
-}
+};
 
 
 export const getAllUsers=async()=>{

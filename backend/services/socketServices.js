@@ -24,29 +24,27 @@ const initializeSocket = (server) => {
         console.log(`User connected: ${socket.id}`);
         let userId=null;
 
-        // handle user connection and mark them as online in DB
-        socket.on('user_connected', (id) => {
-            userId = id;
-            onlineUsers.set(userId, socket.id);
-            console.log(`User marked as online: ${userId}`);
-        });
-
-        // handle user disconnection and mark them as offline in DB
-        socket.on("user-connected", async(connectingUserId) => {
+        socket.on("user_connected", async (id) => {
             try {
-                userId = connectingUserId;
+                userId = id.toString();
                 onlineUsers.set(userId, socket.id);
-                socket.join(userId); // Join a room with the user's ID
+                socket.join(userId);
 
-                // update user status in the database to online
-                await User.findByIdAndUpdate(userId, { isOnline: true, lastSeen: new Date() });
+                await User.findByIdAndUpdate(userId, {
+                    isOnline: true
+                });
 
-                // notify all users that this user is online
-                io.emit("user_status", { userId, isOnline: true });
+                io.emit("user_status", {
+                    userId,
+                    isOnline: true
+                });
+
+                console.log(`User marked as online: ${userId}`);
             } catch (error) {
-                console.error('Error handling user connection', error);
+                console.error("Error handling user connection:", error);
             }
         });
+
         // Return online status of requested users
         socket.on("get_online_status", (requestedUserId, callback) => {
             const isOnline = onlineUsers.has(requestedUserId);
@@ -134,7 +132,7 @@ const initializeSocket = (server) => {
                     (r)=> r.user.toString()=== reactionUserId
                 )
                 if(exitingIndex > -1){
-                    const exiting=message.reactions(exitingIndex)
+                    const exiting = message.reactions[exitingIndex];
                     if(exiting.emoji===emoji){
                         // remove same reaction
                         message.reactions.splice(exitingIndex, 1)
@@ -156,7 +154,9 @@ const initializeSocket = (server) => {
                         reactions:populatedMessage.reactions
                     }
 
-                    const senderSocket=onlineUsers.get(populatedMessage._id.toString());
+                    const senderSocket = onlineUsers.get(
+                        populatedMessage.sender?._id?.toString()
+                    );
                     const receiverSocket= onlineUsers.get(populatedMessage.receiver?._id.toString())
 
                     if(senderSocket) io.to(senderSocket).emit("reaction_update", reactionUpdated)
@@ -191,7 +191,7 @@ const initializeSocket = (server) => {
                 lastSeen:new Date(),
             })
 
-            socket.leave(useId),
+            socket.leave(userId);
             console.log(`user ${userId} disconnected`)
         } catch (error) {
             console.error("Error handling Disconnection",error)
