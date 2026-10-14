@@ -3,8 +3,9 @@ import {getSocket} from "../services/chat.service"
 import axiosInstance from "../services/url.service"
 
 export const useChatStore= create((set,get)=>({
-    conversations:[],// list of all conversation
+    conversations:{ data: [] },
     currentConversation:null,
+    currentUser: null,
     messages: [],
     loading:false,
     error:null,
@@ -99,31 +100,35 @@ export const useChatStore= create((set,get)=>({
             })
         })
 
-        // emit status check for all users in conversation list
-        const {conversations}=get();
-        if(conversations?.data?.length>0){
-            conversations.data?.forEach((conv) => {
-                const otherUser=conv.participants.find(
-                    (p)=>p._id !== get().currentUser._id
-                );
+        const { conversations, currentUser } = get();
 
-                if(otherUser._id){
-                    socket.emit("get_online_status", otherUser._id, (status) => {
-                        if (!status?.userId) return;
+        if (currentUser?._id && Array.isArray(conversations?.data)) {
+        conversations.data.forEach((conv) => {
+            const otherUser = conv.participants?.find(
+            (participant) =>
+                String(participant?._id ?? participant) !==
+                String(currentUser._id)
+            );
 
-                        set((state) => {
-                            const newOnlineUsers = new Map(state.onlineUsers);
+            if (!otherUser) return;
 
-                            newOnlineUsers.set(status.userId.toString(), {
-                                isOnline: status.isOnline,
-                                lastSeen: status.lastSeen
-                            });
+            const otherUserId = String(otherUser?._id ?? otherUser);
 
-                            return { onlineUsers: newOnlineUsers };
-                        });
-                    });
-                }
+            socket.emit("get_online_status", otherUserId, (status) => {
+            if (!status?.userId) return;
+
+            set((state) => {
+                const newOnlineUsers = new Map(state.onlineUsers);
+
+                newOnlineUsers.set(String(status.userId), {
+                isOnline: status.isOnline,
+                lastSeen: status.lastSeen,
+                });
+
+                return { onlineUsers: newOnlineUsers };
             });
+            });
+        });
         }
     },
 
@@ -177,7 +182,79 @@ export const useChatStore= create((set,get)=>({
 
     // send message in real time
     sendMessage:async (formData)=>{
-        
+        const senderId= formData.get("senderId")
+        const receiverId= formData.get("receiverId")
+        const media=formData.get("media")
+        const content=formData.get("content")
+        const messageStatus=formData.get("messageStatus")
+
+        const socket= getSocket()
+        const {conversations}=get()
+        let conversationId=null
+        if(conversations?.data?.length>0){
+            const conversation= conversations.data.find((conv)=>conv.participants.some((p)=>p._id===senderId)&&conv.participants.some((p)=>p._id===receiverId))
+            if(conversation){
+                conversationId=conversation._id
+                set({currentConversation: conversationId})
+            }
+        }
+
+        // temp message before actual response
+        const tempId=`temp-${Date.now()}`
+        const optimisticMessage = {
+        _id: tempId,
+        sender: { _id: senderId },
+        receiver: { _id: receiverId },
+        conversation: conversationId,
+        imageOrVideoUrl:
+            media && typeof media !== "string"
+            ? URL.createObjectURL(media)
+            : null,
+        content: content || "",
+        contentType: media
+            ? media.type.startsWith("image/")
+            ? "image"
+            : media.type.startsWith("video/")
+                ? "video"
+                : "unsupported"
+            : "text",
+        createdAt: new Date().toISOString(),
+        messageStatus,
+        };
+
+        set((state)=>({
+            messages:[...state.messages, optimisticMessage]
+        }))
+
+        try {
+            const {data}=await axiosInstance.post("/chat/send-message", formData,
+                {headers: {"Content-Type":"multipart/form-data"}}
+            )
+            const messageData = data.data || data;
+
+            const conversationIdFromResponse =
+            messageData?.conversation?._id ?? messageData?.conversation;
+
+            set((state) => ({
+            messages: state.messages.map((msg) =>
+                msg._id === tempId ? messageData : msg
+            ),
+            currentConversation:
+                conversationIdFromResponse ?? state.currentConversation,
+            }));
+
+            // Refresh conversation list after a successful send
+            await get().fetchConversations();
+
+            return messageData;
+        } catch (error) {
+            console.error("Error sending message", error)
+            set((state)=>({
+                messages:state.messages.map((msg)=>msg._id===tempId?{...msg, messageStatus: "failed"}: msg),
+                error:error?.response?.data?.message || error?.message,
+            }))
+            throw error
+        }
     },
     receiveMessage:(message)=>{
         if(!message) return

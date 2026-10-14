@@ -7,7 +7,7 @@ const isVariable=(date)=>{
   return date instanceof Date && !isNaN(date)
 }
 
-const ChatWindow = (selectedContact, setSelectedContact) => {
+const ChatWindow = ({ selectedContact, setSelectedContact, isMobile }) => {
   const [message, setMessage] = useState("")
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
   const [showFileMenu, setShowFileMenu] = useState(false)
@@ -20,22 +20,49 @@ const ChatWindow = (selectedContact, setSelectedContact) => {
 
   const {theme} = useThemeStore()
   const {user} = useUserStore()
-  const {messages, loading, sendMessage, receiveMessage, fetchMessages, fetchConversations, conversations, isUserTyping, startTyping, stopTyping, getUserLastSeen, isUserOnline, deleteMessage, addReaction, cleanup}=useChatStore()
+  const {
+    messages,
+    loading,
+    sendMessage,
+    fetchMessages,
+    fetchConversations,
+    conversations,
+    isUserTyping,
+    startTyping,
+    stopTyping,
+    getUserLastSeen,
+    isUserOnline,
+    setCurrentUser,
+  } = useChatStore();
+
+  useEffect(() => {
+    setCurrentUser(user || null);
+  }, [user, setCurrentUser]);
 
   // get online status and lastseen
   const online= isUserOnline(selectedContact?._id)
   const lastSeen=getUserLastSeen(selectedContact?._id)
   const isTyping=isUserTyping(selectedContact?._id)
 
-  useEffect(()=>{
-    // fetch messages for selected contact
-    if(selectedContact?._id && conversations?.data?.length>0){
-      const conversation=conversations.data.find(conv=>conv.participants.some((participant)=>participant._id===selectedContact._id))
-      if(conversation._id){
-        fetchMessages(conversation._id)
-      }
+
+  useEffect(() => {
+    if (!selectedContact?._id || !Array.isArray(conversations?.data)) {
+      return;
     }
-  }, [selectedContact, conversations])
+
+    const conversation = conversations.data.find((conv) =>
+      conv.participants?.some(
+        (participant) =>
+          String(participant?._id ?? participant) ===
+          String(selectedContact._id)
+      )
+    );
+
+    if (conversation?._id) {
+      fetchMessages(conversation._id);
+    }
+  }, [selectedContact?._id, conversations?.data, fetchMessages]);
+
 
   useEffect(()=>{
     fetchConversations()
@@ -49,24 +76,36 @@ const ChatWindow = (selectedContact, setSelectedContact) => {
     scrollToBottom()
   }, [messages])
   
-  useEffect(()=>{
-    if(message && selectedContact){
-      startTyping(selectedContact?._id)
+  
+useEffect(() => {
+  const receiverId = selectedContact?._id;
 
-      if(typingTimeoutRef.current){
-        clearTimeout(typingTimeoutRef.current)
-      }
+  if (typingTimeoutRef.current) {
+    clearTimeout(typingTimeoutRef.current);
+  }
 
-      typingTimeoutRef.current=setTimeout(()=>{
-        stopTyping(selectedContact?._id)
-      }, 2000)
+  if (!receiverId || !message.trim()) {
+    if (receiverId) {
+      stopTyping(receiverId);
     }
-    return ()=>{
-      if(typingTimeoutRef.current){
-        clearTimeout(typingTimeoutRef.current)
-      }
+    return;
+  }
+
+  startTyping(receiverId);
+
+  typingTimeoutRef.current = setTimeout(() => {
+    stopTyping(receiverId);
+    typingTimeoutRef.current = null;
+  }, 2000);
+
+  return () => {
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = null;
     }
-  },[message, selectedContact, startTyping, stopTyping])
+  };
+}, [message, selectedContact?._id, startTyping, stopTyping]);
+
 
   const handleFileChange=(e)=>{
     const file= e.target.files[0]
@@ -81,7 +120,6 @@ const ChatWindow = (selectedContact, setSelectedContact) => {
 
   const handleSendMessage=async()=>{
     if(!selectedContact) return
-    setFilePreview(null)
     try {
       const formData= new FormData()
       formData.append("senderId", user?._id)
