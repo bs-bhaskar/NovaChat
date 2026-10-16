@@ -92,13 +92,20 @@ export const useChatStore= create((set,get)=>({
         })
 
         //  track  user's Online/Offline status
-        socket.on("user_status", ({userId, isOnline, lastSeen})=>{
-            set((state)=>{
-                const newOnlineUsers= new Map(state.onlineUsers);
-                newOnlineUsers.set(userId, {isOnline, lastSeen});
-                return {onlineUsers: newOnlineUsers}
-            })
-        })
+        socket.on("user_status", ({ userId, isOnline, lastSeen }) => {
+            if (!userId) return;
+
+            set((state) => {
+                const newOnlineUsers = new Map(state.onlineUsers);
+
+                newOnlineUsers.set(String(userId), {
+                    isOnline,
+                    lastSeen,
+                });
+
+                return { onlineUsers: newOnlineUsers };
+            });
+        });
 
         const { conversations, currentUser } = get();
 
@@ -137,7 +144,7 @@ export const useChatStore= create((set,get)=>({
     fetchConversations: async ()=>{
         set({loading:true, error:null})
         try {
-            const {data}=await axiosInstance.get("/chat/conversations")
+            const {data}=await axiosInstance.get("/chats/conversations")
             set({conversations:data, loading:false})
 
             get().initsocketListners();
@@ -157,7 +164,7 @@ export const useChatStore= create((set,get)=>({
 
         set({loading:true, error:null})
         try {
-            const {data}= await axiosInstance.get(`/chat/conversations/${conversationId}/messages`);
+            const {data}= await axiosInstance.get(`/chats/conversations/${conversationId}/messages`);
             const messageArray=data.data || data || [];
 
             set({
@@ -227,7 +234,7 @@ export const useChatStore= create((set,get)=>({
         }))
 
         try {
-            const {data}=await axiosInstance.post("/chat/send-message", formData,
+            const {data}=await axiosInstance.post("/chats/send-message", formData,
                 {headers: {"Content-Type":"multipart/form-data"}}
             )
             const messageData = data.data || data;
@@ -303,7 +310,7 @@ export const useChatStore= create((set,get)=>({
         if(unreadIds.length === 0) return
 
         try {
-            const {data}= await axiosInstance.put("/chat/messages/read", {
+            const {data}= await axiosInstance.put("/chats/messages/read", {
                 messageIds:unreadIds
             });
 
@@ -326,7 +333,7 @@ export const useChatStore= create((set,get)=>({
 
     deleteMessage : async(messageId)=>{
         try {
-            await axiosInstance.delete(`/chat/messages/${messageId}`);
+            await axiosInstance.delete(`/chats/messages/${messageId}`);
 
             set((state)=>({
                 messages:state.messages?.filter((msg)=>msg?._id !== messageId)
@@ -378,30 +385,29 @@ export const useChatStore= create((set,get)=>({
         return typingUsers.get(currentConversation).has(userId)
     },
 
-    isUserOnline: (userId)=>{
-        if(!userId){
-            return null
-        }
-        const {onlineUsers}=get()
-        return onlineUsers.get(userId)?.isOnline || false
+    isUserOnline: (userId) => {
+        if (!userId) return false;
+
+        const { onlineUsers } = get();
+        return onlineUsers.get(String(userId))?.isOnline ?? false;
     },
 
-    getUserLastSeen: (userId)=>{
-        if(!userId){
-            return null
-        }
-        const {onlineUsers}=get()
-        return onlineUsers.get(userId)?.lastSeen || null
+    getUserLastSeen: (userId) => {
+        if (!userId) return null;
+
+        const { onlineUsers } = get();
+        return onlineUsers.get(String(userId))?.lastSeen ?? null;
     },
     
-    cleanup:()=>{
+    cleanup: () => {
         set({
-            conversations:[],
-            currentConversation:null,
-            messages:[],
-            onlineUsers:new Map(),
-            typingUsers:new Map(),
-        })
-    }
+            conversations: { data: [] },
+            currentConversation: null,
+            currentUser: null,
+            messages: [],
+            onlineUsers: new Map(),
+            typingUsers: new Map(),
+        });
+    },
      
 }))
