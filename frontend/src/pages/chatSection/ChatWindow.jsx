@@ -275,8 +275,11 @@ useEffect(() => {
         <div className='relative p-4'>
             <img src={filePreview} alt="file-preview" className='w-80 object-cover rounded shadow-lg mx-auto' />
             <button onClick={()=>{
-              setFilePreview(null)
-              setSelectedFile(null)
+              if (filePreview) {
+              URL.revokeObjectURL(filePreview);
+            }
+            setFilePreview(null);
+            setSelectedFile(null);
             }} className='absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition duration-200'>
               <FaTimes className='h-4 w-4'/>
             </button>
