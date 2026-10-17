@@ -46,15 +46,37 @@ const initializeSocket = (server) => {
         });
 
         // Return online status of requested users
-        socket.on("get_online_status", (requestedUserId, callback) => {
-            const isOnline = onlineUsers.has(requestedUserId);
-            callback({ userId: requestedUserId, isOnline, lastSeen: isOnline ? new Date() : null });
+        socket.on("get_online_status", async (requestedUserId, callback) => {
+            try {
+                const id = String(requestedUserId);
+                const isOnline = onlineUsers.has(id);
+
+                const user = await User.findById(id).select("isOnline lastSeen");
+
+                if (typeof callback === "function") {
+                    callback({
+                        userId: id,
+                        isOnline,
+                        lastSeen: user?.lastSeen ?? null,
+                    });
+                }
+            } catch (error) {
+                console.error("Error getting online status:", error);
+
+                if (typeof callback === "function") {
+                    callback({
+                        userId: String(requestedUserId),
+                        isOnline: false,
+                        lastSeen: null,
+                    });
+                }
+            }
         });
 
         // forward message to receiver if they are online
         socket.on("send_message", async (message) => {
             try {
-                const receiverSocketId = onlineUsers.get(message.receiver?._id);
+                const receiverSocketId = onlineUsers.get(String(message.receiver?._id ?? message.receiver));
                 if (receiverSocketId) {
                     io.to(receiverSocketId).emit("receive_message", message);
                 }          
@@ -72,7 +94,7 @@ const initializeSocket = (server) => {
                     { _id: { $in: messageIds }},
                     { $set: { messageStatus: "read" } }
                 );
-                const senderSocketId = onlineUsers.get(senderId);
+                const senderSocketId = onlineUsers.get(String(senderId));
                 if (senderSocketId) {
                     messageIds.forEach(messageId => {
                         io.to(senderSocketId).emit("message_status_update", { messageId, messageStatus: "read" });
@@ -123,7 +145,7 @@ const initializeSocket = (server) => {
         });
 
         // add or update reaction to a message and notify the receiver if they are online 
-        socket.on("add_reaction", async ({ messageId, emoji, userId, reactionUserId })=>{
+        socket.on("add_reaction", async ({ messageId, emoji, reactionUserId })=>{
             try {
                 const message = await Message.findById(messageId);
                 if(!message) return;
