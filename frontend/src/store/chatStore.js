@@ -180,6 +180,7 @@ export const useChatStore= create((set,get)=>({
             return messageArray
         } catch (error) {
             set({
+                messages: [],
                 error:error?.response?.data?.message || error?.message,
                 loading:false
             });
@@ -191,9 +192,21 @@ export const useChatStore= create((set,get)=>({
     sendMessage:async (formData)=>{
         const senderId= formData.get("senderId")
         const receiverId= formData.get("receiverId")
-        const media=formData.get("media")
-        const content=formData.get("content")
-        const messageStatus=formData.get("messageStatus")
+        const media = formData.get("media");
+        const content = formData.get("content");
+        const messageStatus = formData.get("messageStatus");
+
+        const isFile =
+            typeof File !== "undefined" &&
+            media instanceof File;
+
+        const contentType = !isFile
+            ? "text"
+            : media.type.startsWith("image/")
+                ? "image"
+                : media.type.startsWith("video/")
+                    ? "video"
+                    : "unsupported";
 
         const socket= getSocket()
         const {conversations}=get()
@@ -213,18 +226,11 @@ export const useChatStore= create((set,get)=>({
         sender: { _id: senderId },
         receiver: { _id: receiverId },
         conversation: conversationId,
-        imageOrVideoUrl:
-            media && typeof media !== "string"
+        imageOrVideoUrl:isFile
             ? URL.createObjectURL(media)
             : null,
         content: content || "",
-        contentType: media
-            ? media.type.startsWith("image/")
-            ? "image"
-            : media.type.startsWith("video/")
-                ? "video"
-                : "unsupported"
-            : "text",
+        contentType,
         createdAt: new Date().toISOString(),
         messageStatus,
         };
@@ -269,13 +275,32 @@ export const useChatStore= create((set,get)=>({
         const messageExits= messages.some((msg)=>msg._id===message._id)
         if(messageExits) return 
 
-        if(message.conversation===currentConversation){
+        const messageConversationId = String(
+            message.conversation?._id ?? message.conversation ?? ""
+        );
+
+        const receiverId = String(
+            message.receiver?._id ?? message.receiver ?? ""
+        );
+
+        const currentUserId = String(currentUser?._id ?? "");
+
+        const isForCurrentUser =
+            receiverId !== "" && receiverId === currentUserId;
+
+        const isActiveConversation =
+            messageConversationId !== "" &&
+            messageConversationId === currentConversationId;
+
+        const currentConversationId = String(currentConversation ?? "");
+
+        if (messageConversationId === currentConversationId) {
             set((state)=>({
                 messages:[...state.messages, message]
             }))
 
             // automatically mark as read if the message is for the current user
-            if(message?.receiver?._id===currentUser?._id){
+            if(isForCurrentUser && isActiveConversation){
                 get().markMessagesAsRead()
             }
         }
@@ -283,11 +308,18 @@ export const useChatStore= create((set,get)=>({
         // update conversation preview and unread count
         set((state)=>{
             const updateConversations= state.conversations?.data?.map((conv)=>{
-                if(conv._id===message.conversation){
+                if (
+                    String(conv._id) ===
+                    String(message.conversation?._id ?? message.conversation)
+                ) {
                     return {
                         ...conv,
                         lastMessage:message,
-                        unreadCount:message?.receiver?._id===currentUser?._id ? (conv.unreadCount || 0) + 1 : conv.unreadCount || 0
+                        unreadCount: isForCurrentUser
+                        ? isActiveConversation
+                            ? 0
+                            : (conv.unreadCount || 0) + 1
+                        : (conv.unreadCount || 0)
                     }
                 }
                 return conv

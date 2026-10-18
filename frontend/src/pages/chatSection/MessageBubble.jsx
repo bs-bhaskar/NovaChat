@@ -15,52 +15,72 @@ const MessageBubble = ({ message, theme, onReact, currentUser, deleteMessage }) 
 
     const emojiPickerRef = useRef(null);
     const reactionsMenuRef = useRef(null);
-    const isUserMessage = message.sender._id === currentUser?._id;
-
-    const bubbleClass=isUserMessage?`chat-end`:'chat-start'
-
-    const bubbleContentClass = isUserMessage ? `chat-bubble md:max-w-[50%] min-w-[130px] ${theme==='dark'?"bg-[#144d38] text-white":"bg-[#d9fdd3] text-black"}`:`chat-bubble md:max-w-[50%] min-w-[130px] ${theme==='dark'?"bg-[#144d38] text-white":"bg-[#d9fdd3] text-black"}`;
-
-    const quickReactions = ["👍", "❤️", "😂", "😮", "😢", "🙏"];
-
-    const handleReact=(emoji)=>{
-      onReact(message._id, emoji)
-      setShowEmojiPicker(false)
-      setShowReactions(false)
-    }
 
     useOutsideclick(emojiPickerRef, ()=>{
       if(showEmojiPicker) setShowEmojiPicker(false)
-    })
+      })
     useOutsideclick(reactionsMenuRef, ()=>{
       if(showReactions) setShowReactions(false)
-    })
+      })
     useOutsideclick(optionsRef, ()=>{
       if(showOptions) setShowOptions(false)
-    })
+      })
+    
+    if (!message) return null;
+    
+    const isUserMessage =
+    String(message.sender?._id ?? message.sender ?? "") ===
+    String(currentUser?._id ?? "");
+    
+    const bubbleClass = isUserMessage
+      ? "justify-end"
+      : "justify-start";
 
-    if(message===0) return
-  return (
-    <div className={`chat ${bubbleClass}`}>
+    const bubbleContentClass = `relative group inline-flex flex-col w-fit min-w-0 max-w-[75%] mb-2 rounded-2xl ${
+      isUserMessage ? "px-3" : "pl-3 pr-8"
+    } py-2 shadow-sm transition-shadow hover:shadow-md ${
+      isUserMessage
+        ? theme === "dark"
+          ? "bg-[#144d38] text-white rounded-tr-sm"
+          : "bg-[#d9fdd3] text-gray-900 rounded-tr-sm"
+        : theme === "dark"
+          ? "bg-[#202c33] text-white rounded-tl-sm border border-[#2a3942]"
+          : "bg-white text-gray-900 rounded-tl-sm border border-gray-200"
+    }`;
+
+    const quickReactions = ["👍", "❤️", "😂", "😮", "😢", "🙏"];
+
+    const handleReact = (emoji) => {
+      if (!message?._id || typeof onReact !== "function") return;
+
+      onReact(message._id, emoji);
+      setShowEmojiPicker(false);
+      setShowReactions(false);
+    };
+
+    return (
+    <div className={`flex w-full ${bubbleClass} mb-3 px-3`}>
       <div className={`${bubbleContentClass} relative group`} ref={messageRef}>
-        <div className='flex justify-center gap-2'>
+        <div className="flex flex-col gap-1 min-w-0">
           {message.content && (
-            <p className="mr-2 whitespace-pre-wrap">{message.content}</p>
+            <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere] leading-relaxed">
+              {message.content}
+            </p>
           )}
 
           {message.contentType === "image" && message.imageOrVideoUrl && (
-            <img src={message.imageOrVideoUrl} alt="Shared image" className="rounded-lg max-w-xs"/>
+            <img src={message.imageOrVideoUrl} alt="Shared image" className="rounded-xl max-w-full w-auto max-h-80 object-contain"/>
           )}
 
           {message.contentType === "video" && message.imageOrVideoUrl && (
             <video
               src={message.imageOrVideoUrl}
               controls
-              className="rounded-lg max-w-xs"
+              className="rounded-xl max-w-full w-auto max-h-80"
             />
           )}
         </div>
-        <div className='self-end flex items-center justify-end gap-1 text-xs opacity-60 mt-2 ml-2'>
+        <div className="flex items-center justify-end gap-1 text-[11px] opacity-65 mt-1">
             <span>
               {format(new Date(message.createdAt), "HH:mm")}
             </span>
@@ -116,10 +136,22 @@ const MessageBubble = ({ message, theme, onReact, currentUser, deleteMessage }) 
             </div>
           </div>
         )}
-        {message.reactions && message.reactions.length>0 &&(
-          <div className={`absolute -bottom-5 ${isUserMessage?"right-2":"left-2"} ${theme==='dark'?"bg-[#2a3942]":"bg-gray-200"} rounded-full px-2 shadow-md`}>
-            {message.reactions.map((reaction, index)=>(
-              <span key={index} className="mr-1">
+        {message.reactions?.length > 0 && (
+          <div
+            className={`absolute -bottom-3 ${
+              isUserMessage ? "right-3" : "left-3"
+            } z-20 flex items-center gap-1 px-2 py-1 rounded-full
+            shadow-md border backdrop-blur-sm transition-transform duration-150 hover:scale-105 ${
+              theme === "dark"
+                ? "bg-[#202c33] border-[#3b4a54]"
+                : "bg-gray-200 border-gray-200"
+            }`}
+          >
+            {message.reactions.map((reaction, index) => (
+              <span
+                key={reaction._id || `${reaction.emoji}-${index}`}
+                className="text-sm leading-none"
+              >
                 {reaction.emoji}
               </span>
             ))}
@@ -127,24 +159,53 @@ const MessageBubble = ({ message, theme, onReact, currentUser, deleteMessage }) 
         )}
 
         {showOptions && (
-          <div ref={optionsRef} className={`absolute top-8 right-1 z-50 w-36 rounded-xl shadow-lg py-2 text-sm ${theme==='dark'?"bg-[#1d1f1f] text-white":"text-gray-100 text-black"}`}>
-            <button onClick={()=>{
-              if(message.contentType==='text'){
-                navigator.clipboard.writeText(message.content)
-              }
-              setShowOptions(false)
-            }} className="flex items-center w-full px-4 py-2 gap-3 rounded-lg">
-                <FaRegCopy size={14}/>
+          <div
+            ref={optionsRef}
+            className={`absolute top-0 ${
+              isUserMessage
+                ? "right-full mr-2"
+                : "left-full ml-2"
+            } z-[100] w-36 rounded-xl border shadow-xl py-1.5 text-sm ${
+              theme === "dark"
+                ? "bg-[#1d1f1f] text-white border-gray-700"
+                : "bg-white text-gray-900 border-gray-200"
+            }`}
+          >
+            {message.contentType === "text" && (
+              <button
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(message.content || "");
+                    setShowOptions(false);
+                  } catch (error) {
+                    console.error("Failed to copy message:", error);
+                  }
+                }}
+                className={`flex items-center w-full px-3 py-2.5 gap-3 rounded-lg transition-colors duration-150 ${
+                  theme === "dark"
+                    ? "hover:bg-white/10 text-gray-100"
+                    : "hover:bg-gray-100 text-gray-800"
+                }`}
+              >
+                <FaRegCopy size={14} />
                 <span>Copy</span>
-            </button>
+              </button>
+            )}
 
-            {isUserMessage &&(
-              <button onClick={()=>{
-                deleteMessage(message?._id)
-                setShowOptions(false)
-              }} className="flex items-center w-full px-4 py-2 gap-3 rounded-lg text-red-600">
-                  <FaRegCopy className="text-red-600" size={14}/>
-                  <span>Delete</span>
+            {isUserMessage && (
+              <button
+                onClick={() => {
+                  deleteMessage(message?._id);
+                  setShowOptions(false);
+                }}
+                className={`flex items-center w-full px-3 py-2.5 gap-3 rounded-lg transition-colors duration-150 ${
+                  theme === "dark"
+                    ? "text-red-400 hover:bg-red-500/10"
+                    : "text-red-600 hover:bg-red-50"
+                }`}
+              >
+                <FaRegCopy size={14} />
+                <span>Delete</span>
               </button>
             )}
           </div>

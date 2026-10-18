@@ -8,6 +8,7 @@ exports.sendMessage=async (req,res)=>{
         // const {senderId, receiverId, content, messageStatus}=req.body;
         const { receiverId, content } = req.body;
         const senderId = req.user.userId;
+        let messageStatus = "send";
         const file=req.file
 
         const participants=[senderId, receiverId].sort();
