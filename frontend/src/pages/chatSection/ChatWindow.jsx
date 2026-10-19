@@ -129,7 +129,7 @@ useEffect(() => {
         URL.revokeObjectURL(previousPreview);
       }
 
-      return file.type.startsWith("image/")
+      return (file.type.startsWith("image/")|| file.type.startsWith("video/"))
         ? URL.createObjectURL(file)
         : null;
     });
@@ -263,7 +263,7 @@ useEffect(() => {
               {msgs.filter(
                 (msg) =>
                   String(msg.conversation?._id ?? msg.conversation) ===
-                  String(currentConversation)
+                  String(currentConversation?._id ?? currentConversation)
               ).map((msg)=>(
                 <MessageBubble key={msg._id || msg.tempId} message={msg} theme={theme} currentUser={user} onReact={handleReaction} deleteMessage={deleteMessage} />
               ))}
@@ -273,7 +273,11 @@ useEffect(() => {
       </div>
       {filePreview && (
         <div className='relative p-4'>
+          {selectedFile?.type.startsWith("video/")?(
+            <video src={filePreview} controls className='w-80 object-cover rounded shadow-lg mx-auto'/>
+          ):(
             <img src={filePreview} alt="file-preview" className='w-80 object-cover rounded shadow-lg mx-auto' />
+          )}  
             <button onClick={()=>{
               if (filePreview) {
               URL.revokeObjectURL(filePreview);
