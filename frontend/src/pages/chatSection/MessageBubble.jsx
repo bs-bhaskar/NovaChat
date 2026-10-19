@@ -1,4 +1,4 @@
-import {format} from "date-fns"
+import {format, isValid} from "date-fns"
 import React, {useState, useRef} from 'react'
 import {FaCheck, FaCheckDouble, FaPlus, FaRegCopy, FaSmile} from "react-icons/fa"
 import {HiDotsVertical} from "react-icons/hi"
@@ -31,6 +31,12 @@ const MessageBubble = ({ message, theme, onReact, currentUser, deleteMessage }) 
     const isUserMessage =
     String(message.sender?._id ?? message.sender ?? "") ===
     String(currentUser?._id ?? "");
+
+    const messageDate = new Date(message.createdAt);
+
+    const formattedTime = isValid(messageDate)
+      ? format(messageDate, "HH:mm")
+      : "";
     
     const bubbleClass = isUserMessage
       ? "justify-end"
@@ -82,7 +88,7 @@ const MessageBubble = ({ message, theme, onReact, currentUser, deleteMessage }) 
         </div>
         <div className="flex items-center justify-end gap-1 text-[11px] opacity-65 mt-1">
             <span>
-              {format(new Date(message.createdAt), "HH:mm")}
+              {formattedTime}
             </span>
             {isUserMessage && (
               <>
@@ -195,8 +201,10 @@ const MessageBubble = ({ message, theme, onReact, currentUser, deleteMessage }) 
             {isUserMessage && (
               <button
                 onClick={() => {
-                  deleteMessage(message?._id);
-                  setShowOptions(false);
+                  if (typeof deleteMessage === "function" && message?._id) {
+                    deleteMessage(message._id);
+                    setShowOptions(false);
+                  }
                 }}
                 className={`flex items-center w-full px-3 py-2.5 gap-3 rounded-lg transition-colors duration-150 ${
                   theme === "dark"
