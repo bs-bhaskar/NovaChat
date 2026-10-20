@@ -1,6 +1,7 @@
 const {Server} = require('socket.io')
 const User = require("../models/User");
 const Message = require('../models/Message');
+const { handleVideoCallEvent } = require("./video-call-events");
 
 // map to store online users => userId: socketId
 const onlineUsers = new Map();
@@ -27,6 +28,7 @@ const initializeSocket = (server) => {
         socket.on("user_connected", async (id) => {
             try {
                 userId = id.toString();
+                socket.userId = userId; // Store userId in socket instance for later use
                 onlineUsers.set(userId, socket.id);
                 socket.join(userId);
 
@@ -145,9 +147,15 @@ const initializeSocket = (server) => {
         });
 
         // add or update reaction to a message and notify the receiver if they are online 
-        socket.on("add_reaction", async ({ messageId, emoji, reactionUserId })=>{
+        
+        socket.on("add_reaction", async ({ messageId, emoji }) => {
             try {
+                if (!socket.userId) return;
+
+                const reactionUserId = socket.userId;
                 const message = await Message.findById(messageId);
+                if (!message) return;
+
                 if(!message) return;
 
                 const exitingIndex= message.reactions.findIndex(
@@ -166,7 +174,7 @@ const initializeSocket = (server) => {
                     message.reactions.push({user:reactionUserId, emoji})
                 }
                 await message.save();
-                const populatedMessage=await Message.findOne(message?._id)
+                const populatedMessage = await Message.findById(message._id)
                     .populate("sender","username profilePicture")
                     .populate("receiver","username profilePicture")
                     .populate("reactions.user","username")
@@ -189,10 +197,19 @@ const initializeSocket = (server) => {
         })
 
 
+    // handle video call events
+    handleVideoCallEvent(socket, io, onlineUsers);    
+
+
     // handle disconnections and mark user offline 
     const handleDisconnected= async()=>{
         if(!userId) return;
         try {
+            // Purane socket ko naye socket ki mapping delete nahi karni chahiye
+            if (onlineUsers.get(userId) !== socket.id) {
+                return;
+            }
+
             onlineUsers.delete(userId);
             // clear all typing timeouts
             if(typingUsers.has(userId)){
