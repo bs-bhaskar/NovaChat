@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef } from 'react'
 import useVideoCallStore from '../../store/videoCallStore'
 import useUserStore from '../../store/useUserStore'
 import useThemeStore from '../../store/themeStore'
-import {FaPhoneSlash, FaVideo} from "react-icons/fa"
+import {FaMicrophone, FaMicrophoneSlash, FaPhoneSlash, FaTimes, FaVideo} from "react-icons/fa"
 
 const VideoCallModel = ({socket}) => {
     const localVideoRef=useRef(null)
@@ -356,18 +356,59 @@ const VideoCallModel = ({socket}) => {
                 {callType==="video" &&(
                   <video ref={remoteVideoRef} autoPlay playsInline className={`w-full h-full object-cover bg-gray-800 ${remoteStream ?"black":"hidden"}`}/>
                 )}
-              </div>
-            )}
             {/* Avatar /status display */}
             {(!remoteStream || callType !== "video")&&(
               <div className='w-full h-full bg-gray-800 flex items-center justify-center'>
                 <div className='text-center'>
-                  <div>
-                    <img src={displayInfo.avatar} alt={displayInfo} />
+                  <div className='w-32 h-32 rounded-full bg-gray-600 mx-auto mb-4 overflow-hidden'>
+                    <img src={displayInfo.avatar} alt={displayInfo?.name} className='w-full h-full object-cover' />
                   </div>
+                  <p className='text-white text-xl'>
+                    {callStatus === 'calling' ? ` Calling ${displayInfo?.name}...`:callStatus==='connecting'?' connecting...':callStatus==='connected'?displayInfo?.name:callStatus==="failed"?"Connection failed":displayInfo?.name}
+                  </p>
                 </div>
               </div>
             )}
+            {/* local video (picture in picture) */}
+            {callType === 'video' && localStream &&(
+              <div className='absolute top-4 right-4 w-48 h-36 bg-gray-800 rounded-lg overflow-hidden border-2 border-white'>
+                <video ref={localVideoRef} autoPlay playsInline muted className='w-full h-full object-cover'></video>
+              </div>
+            )}
+            {/* call status */}
+            <div className='absolute top-4 left-4'>
+              <div className={`px-4 py-2 rounded-full ${theme==='dark'?"bg-gray-800":"bg-white"} bg-opacity-75`}>
+                <p className={
+                  `text-sm ${theme==='dark'?"text-white":"text-gray-900"}`
+                }>
+                  {callStatus==="connected"?"Connected":callStatus}
+                </p>
+              </div>
+            </div>
+            {/* call controls */}
+            <div className='absolute bottom-8 left-1/2 transform -translate-x-1/2'>
+                <div className='flex space-x-4'>
+                  {callType==='video'&&(
+                    <button className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors ${isVideoEnabled?"bg-gray-600 hover:bg-gray-700 text-white":"bg-red-500 hover:bg-red-600 text-white"}`}>
+                      {isVideoEnabled?(<FaVideo className='w-5 h-5'/>):(<FaPhoneSlash className='w-5 h-5'/>)}
+                    </button>
+                  )}
+                  <button className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors ${isAudioEnabled?"bg-gray-600 hover:bg-gray-700 text-white":"bg-red-500 hover:bg-red-600 text-white"}`}>
+                    {isVideoEnabled?(<FaMicrophone className='w-5 h-5'/>):(<FaMicrophoneSlash className='w-5 h-5'/>)}
+                  </button>
+                  <button onClick={handleEndCall} className='w-16 h-16 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center text-white transition'>
+                    <FaPhoneSlash className='w-6 h-6'/>
+                  </button>
+                </div>
+            </div>
+
+            </div>
+          )}
+          {callStatus==='calling' && (
+            <button onClick={handleEndCall} className='absolute top-4 right-4 w-8 h-8 bg-gray-600 hover:bg-gray-700 rounded-full flex items-center justify-center text-white transition'>
+              <FaTimes className='w-6 h-6'/>
+            </button>
+          )}
           </div>
         </div>
     )
