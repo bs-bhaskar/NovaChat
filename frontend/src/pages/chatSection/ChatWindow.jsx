@@ -28,7 +28,7 @@ const ChatWindow = ({ selectedContact, setSelectedContact, isMobile }) => {
 
   const {theme} = useThemeStore()
   const {user} = useUserStore()
-  const {socket}=getSocket()
+  const socket=getSocket()
   const {
     messages,
     loading,

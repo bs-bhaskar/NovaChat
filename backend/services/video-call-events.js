@@ -8,7 +8,7 @@
 
 //         if(receiverSocketId){
 //             const callId=`${callerId}-${receiverId}-${Date.now()}`
-//             io.to(receiverSocketId).emit("incomming_call",{
+//             io.to(receiverSocketId).emit("incoming_call",{
 //                 callerId,
 //                 callerName:callerInfo.username,
 //                 callerAvatar:callerInfo.profilePicture,
@@ -92,34 +92,42 @@
 const handleVideoCallEvent = (socket, io, onlineUsers) => {
 
     // Initiate video call
-    socket.on("initiate_call", ({ callerId, receiverId, callType, callerInfo } = {}) => {
-        try {
-            if (!callerId || !receiverId || !socket.userId) return;
+    socket.on(
+        "initiate_call",
+        ({ callerId, receiverId, callType, callerInfo, callId } = {}) => {
+            try {
+                if (!callerId || !receiverId || !callId || !socket.userId) {
+                    return;
+                }
 
-            // Caller ID must match the connected socket user
-            if (String(callerId) !== String(socket.userId)) return;
+                // Caller ID must match the connected socket user
+                if (String(callerId) !== String(socket.userId)) {
+                    return;
+                }
 
-            const receiverSocketId = onlineUsers.get(String(receiverId));
+                const receiverSocketId = onlineUsers.get(String(receiverId));
 
-            if (receiverSocketId) {
-                const callId = `${callerId}-${receiverId}-${Date.now()}`;
-
-                io.to(receiverSocketId).emit("incomming_call", {
-                    callerId,
-                    callerName: callerInfo?.username || "User",
-                    callerAvatar: callerInfo?.profilePicture || "",
-                    callId,
-                    callType
+                if (receiverSocketId) {
+                    io.to(receiverSocketId).emit("incoming_call", {
+                        callerId,
+                        callerName: callerInfo?.username || "User",
+                        callerAvatar: callerInfo?.profilePicture || "",
+                        callId,
+                        callType
+                    });
+                } else {
+                    socket.emit("call_failed", {
+                        reason: "user is offline"
+                    });
+                }
+            } catch (error) {
+                console.error("Error initiating call:", error);
+                socket.emit("call_failed", {
+                    reason: "Failed to initiate call"
                 });
-            } else {
-                console.log(`server: Receiver ${receiverId} is offline`);
-                socket.emit("call_failed", { reason: "user is offline" });
             }
-        } catch (error) {
-            console.error("Error initiating call:", error);
-            socket.emit("call_failed", { reason: "Failed to initiate call" });
         }
-    });
+    );
 
     // Accept call
     socket.on("accept_call", ({ callerId, callId, receiverInfo } = {}) => {
@@ -220,6 +228,7 @@ const handleVideoCallEvent = (socket, io, onlineUsers) => {
             if (!callId || !candidate || !receiverId || !socket.userId) return;
 
             const receiverSocketId = onlineUsers.get(String(receiverId));
+            console.log("connecting ice candidate")
 
             if (receiverSocketId) {
                 io.to(receiverSocketId).emit("webrtc_ice_candidate", {

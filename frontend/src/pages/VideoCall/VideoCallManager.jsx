@@ -31,7 +31,7 @@ const VideoCallManager = ({socket}) => {
         socket.on("incoming_call", handleIncomingCall)
         socket.on("call_failed", handleCallEnded)
         return ()=>{
-            socket.off("incomming_call", handleIncomingCall)
+            socket.off("incoming_call", handleIncomingCall)
             socket.off("call_failed", handleCallEnded)
         }
     },[socket,setIncomingCall,setCallType,setCallModelOpen,setCallStatus,endCall])
