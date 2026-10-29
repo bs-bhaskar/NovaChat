@@ -374,7 +374,7 @@ const Login = () => {
             </p>
             <div className="flex justify-between">
               {otp.map((digit, index)=>(
-                <input type="text" key={index} id={`otp-${index}`} maxLength={1} value={digit} onChange={(e)=>handleOtpChange(index, e.target.value)} className={`w-12 h-12 text-center border ${theme==='dark' ? "bg-gray-700 border-gray-600 text-white" : "bg-white border-r-gray-300"} rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 ${otpErrors.otp ? "border-red-500" : ""}`} />
+                <input type="text" key={index} id={`otp-${index}`} maxLength={1} value={digit} onChange={(e)=>handleOtpChange(index, e.target.value)} className={`w-12 h-12 text-center border ${theme==='dark' ? "bg-gray-700 border-gray-600 text-white" : "bg-white border-r-gray-300 text-gray-500"} rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 ${otpErrors.otp ? "border-red-500" : ""}`} />
               ))}
             </div>
                 {otpErrors.otp && (
