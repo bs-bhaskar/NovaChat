@@ -38,11 +38,11 @@ const useStatusStore = create((set,get)=>({
             }))
         })
 
-        socket.on("status_viewed", (statusId, viewers) => {
+        socket.on("status_viewed", (viewData) => {
             set((state) => ({
                 statuses: state.statuses.map((status) =>
-                    String(status._id) === String(statusId)
-                        ? { ...status, viewers }
+                    String(status._id) === String(viewData.statusId)
+                        ? { ...status, viewers: viewData.viewers }
                         : status
                 ),
             }))
@@ -82,6 +82,7 @@ const useStatusStore = create((set,get)=>({
                 formData.append("content", statusData.content)
             }
 
+            // const { data } = await axiosInstance.post('/status', formData)
             const {data}=await axiosInstance.post('/status', formData,
                 {headers:{"Content-Type":"multipart/form-data"}}
             )
@@ -99,7 +100,6 @@ const useStatusStore = create((set,get)=>({
             } else {
                 set({ loading: false })
             }
-
             return data.data
         } catch (error) {
             console.error("Enter creating status",error)
@@ -118,6 +118,8 @@ const useStatusStore = create((set,get)=>({
             set({
                 error: error.response?.data?.message || error.message,
             })
+
+            throw error
         }
     },
 
@@ -133,6 +135,7 @@ const useStatusStore = create((set,get)=>({
                 ),
                 loading: false,
             }))
+            set({loading:false})
         } catch (error) {
             console.error("Error deleting status", error)
 
@@ -154,7 +157,6 @@ const useStatusStore = create((set,get)=>({
             )
 
             set({ loading: false })
-
             return data.data
         } catch (error) {
             console.error("Error getting status viewers", error)
@@ -185,7 +187,7 @@ const useStatusStore = create((set,get)=>({
                 id:status._id,
                 media:status.content,
                 contentType:status.contentType,
-                timeStamp:status.createdAt,
+                timestamp:status.createdAt,
                 viewers:status.viewers,
             })
             return acc
