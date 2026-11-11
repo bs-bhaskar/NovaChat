@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef } from 'react'
+import React, { useEffect, useMemo, useRef, useCallback } from 'react'
 import useVideoCallStore from '../../store/videoCallStore'
 import useUserStore from '../../store/useUserStore'
 import useThemeStore from '../../store/themeStore'
@@ -36,13 +36,13 @@ const VideoCallModel = ({socket}) => {
     const {user}=useUserStore()
     const {theme}=useThemeStore()
     
-    const rtcConfiguration = {
+    const rtcConfiguration = useMemo(() => ({
         iceServers: [
             { urls: 'stun:stun.l.google.com:19302' },
             { urls: 'stun:stun1.l.google.com:19302' },
             { urls: 'stun:stun2.l.google.com:19302' },
         ],
-    };
+    }), []);
 
     // Memorize display the user and it is prevent the unnecessary re-rendering of the component when the state changes
     const displayInfo = useMemo(() => {
@@ -85,160 +85,193 @@ const VideoCallModel = ({socket}) => {
         }
     }, [remoteStream]);
 
-    // initialize media stream when the component mounts
-        const initialzeMedia=async (video=true) => {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: video ?{width: 640, height: 480} : false, audio: true });
-                console.log("Local media stream", stream.getTracks());
-                setLocalStream(stream);
-                return stream
-            } catch (error) {
-                console.error("media error:", error);
-                throw error;
-            }
+    
+    // initialize media stream
+    const initialzeMedia = useCallback(async (video = true) => {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: video ? { width: 640, height: 480 } : false,
+                audio: true
+            });
+
+            console.log("Local media stream", stream.getTracks());
+            setLocalStream(stream);
+
+            return stream;
+        } catch (error) {
+            console.error("media error:", error);
+            throw error;
+        }
+    }, [setLocalStream]);
+
+    // End call
+    const handleEndCall = useCallback(() => {
+        const participantId = currentCall?.participantId || incomingCall?.callerId;
+        const callId = currentCall?.callId || incomingCall?.callId;
+
+        if (participantId && callId && socket) {
+            socket.emit("end_call", {
+                callId,
+                participantId
+            });
         }
 
-    // create peer connection 
-    const createPeerConnection = (stream,role) => {
+        endCall();
+    }, [currentCall, incomingCall, socket, endCall]);
+
+    // Create peer connection
+    const createPeerConnection = useCallback((stream, role) => {
         const pc = new RTCPeerConnection(rtcConfiguration);
-        // add local tracks immediatly
-        if(stream){
-          stream.getTracks().forEach((track) => {
-            console.log(`${role} adding ${track.kind} track`, track.id.slice(0,8))
-            pc.addTrack(track,stream)
-          });
+
+        // Add local tracks
+        if (stream) {
+            stream.getTracks().forEach((track) => {
+                console.log(`${role} adding ${track.kind} track`, track.id.slice(0, 8));
+                pc.addTrack(track, stream);
+            });
         }
 
-        // handle ice candidates
-        pc.onicecandidate=(event)=>{
-          if(event.candidate && socket){
-            const participantId=currentCall?.participantId || incomingCall?.callerId
-            const callId=currentCall?.callId || incomingCall?.callId
+        // Handle ICE candidates
+        pc.onicecandidate = (event) => {
+            if (event.candidate && socket) {
+                const participantId = currentCall?.participantId || incomingCall?.callerId;
+                const callId = currentCall?.callId || incomingCall?.callId;
 
-            if(participantId && callId){
-              socket.emit("webrtc_ice_candidate",{
-                candidate:event.candidate,
-                receiverId:participantId,
-                callId:callId
-              })
+                if (participantId && callId) {
+                    socket.emit("webrtc_ice_candidate", {
+                        candidate: event.candidate,
+                        receiverId: participantId,
+                        callId
+                    });
+                }
             }
-          }
-        }
+        };
 
-        // handle remote stream
-        pc.ontrack=(event)=>{
-          if(event.streams && event.streams[0]){
-            setRemoteStream(event.streams[0])
-          }else{
-            const stream = new MediaStream([event.track])
-            setRemoteStream(stream)
-          }
-        }
+        // Handle remote stream
+        pc.ontrack = (event) => {
+            if (event.streams && event.streams[0]) {
+                setRemoteStream(event.streams[0]);
+            } else {
+                const remoteMediaStream = new MediaStream([event.track]);
+                setRemoteStream(remoteMediaStream);
+            }
+        };
 
-        pc.onconnectionstatechange=()=>{
-          console.log(`role: ${role} : connection state`, pc.connectionState)
-          if(pc.connectionState==='failed'){
-            setCallStatus("failed")
-            setTimeout(handleEndCall,2000)
-          }
-        }
+        pc.onconnectionstatechange = () => {
+            console.log(`${role} : connection state`, pc.connectionState);
 
-        pc.oniceconnectionstatechange=()=>{
-          console.log(`${role} : ICE state`, pc.connectionState)
-        }
-        pc.onsignalingstatechange=()=>{
-          console.log(`${role} : Signaling state`, pc.signalingState)
-        }
+            if (pc.connectionState === 'failed') {
+                setCallStatus("failed");
+                setTimeout(handleEndCall, 2000);
+            }
+        };
 
-        setPeerConnection(pc)
-        return pc
+        pc.oniceconnectionstatechange = () => {
+            console.log(`${role} : ICE state`, pc.iceConnectionState);
+        };
+
+        pc.onsignalingstatechange = () => {
+            console.log(`${role} : Signaling state`, pc.signalingState);
+        };
+
+        setPeerConnection(pc);
+
+        return pc;
+    }, [
+        rtcConfiguration,
+        socket,
+        currentCall,
+        incomingCall,
+        setRemoteStream,
+        setCallStatus,
+        setPeerConnection,
+        handleEndCall
+    ]);
+
+    // Caller: Initialize call after acceptance
+    const initializeCallerCall = useCallback(async () => {
+        try {
+            setCallStatus("connecting");
+
+            // Get media
+            const stream = await initialzeMedia(callType === "video");
+
+            // Create peer connection
+            const pc = createPeerConnection(stream, "CALLER");
+
+            const offer = await pc.createOffer({
+                offerToReceiveAudio: true,
+                offerToReceiveVideo: callType === "video"
+            });
+
+            await pc.setLocalDescription(offer);
+
+            socket.emit("webrtc_offer", {
+                offer,
+                receiverId: currentCall?.participantId,
+                callId: currentCall?.callId
+            });
+
+        } catch (error) {
+            console.error("Caller Error", error);
+            setCallStatus("failed");
+            setTimeout(handleEndCall, 2000);
+        }
+    }, [
+        setCallStatus,
+        initialzeMedia,
+        callType,
+        createPeerConnection,
+        socket,
+        currentCall,
+        handleEndCall
+    ]);
+
+    // Receiver: Answer call
+    const handleAnswerCall = async () => {
+        try {
+            setCallStatus("connecting");
+
+            const stream = await initialzeMedia(callType === "video");
+
+            createPeerConnection(stream, "RECEIVER");
+
+            socket.emit("accept_call", {
+                callerId: incomingCall?.callerId,
+                callId: incomingCall?.callId,
+                receiverInfo: {
+                    username: user?.username,
+                    profilePicture: user?.profilePicture
+                }
+            });
+
+            setCurrentCall({
+                callId: incomingCall?.callId,
+                participantId: incomingCall?.callerId,
+                participantName: incomingCall?.callerName,
+                participantAvatar: incomingCall?.callerAvatar,
+            });
+
+            clearIncomingCall();
+
+        } catch (error) {
+            console.error("Receiver Error:", error);
+            handleEndCall();
+        }
     };
 
-    // caller : Initialize call after acceptance
-    const initializeCallerCall=async()=>{
-      try {
-        setCallStatus("connecting")
+    // Reject call
+    const handleRejectCall = () => {
+        if (incomingCall) {
+            socket.emit("reject_call", {
+                callerId: incomingCall?.callerId,
+                callId: incomingCall?.callId
+            });
+        }
 
-        // get media 
-        const stream=await initialzeMedia(callType==="video")
+        endCall();
+    };
 
-        // create peer connection with offer
-        const pc=createPeerConnection(stream,"CALLER")
-
-        const offer=await pc.createOffer({
-          offerToReceiveAudio:true,
-          offerToReceiveVideo:callType==="video"
-        })
-        await pc.setLocalDescription(offer)
-        socket.emit("webrtc_offer",{
-          offer,
-          receiverId:currentCall?.participantId,
-          callId:currentCall?.callId
-        })
-      } catch (error) {
-        console.error("Caller Error", error)
-        setCallStatus("failed")
-        setTimeout(handleEndCall,2000)
-      }
-    }
-
-    // Receiver : Answer call
-
-    const handleAnswerCall=async ()=>{
-      try {
-        
-        setCallStatus("connecting")
-
-        // get media 
-        const stream=await initialzeMedia(callType==="video")
-        // create peer connection with offer
-        createPeerConnection(stream,"RECEIVER")
-
-        socket.emit("accept_call",{
-          callerId:incomingCall?.callerId,
-          callId:incomingCall?.callId,
-          receiverInfo:{
-            username:user?.username,
-            profilePicture:user?.profilePicture
-          }
-        })
-
-        setCurrentCall({
-          callId:incomingCall?.callId,
-          participantId:incomingCall?.callerId,
-          participantName:incomingCall?.callerName,
-          participantAvatar:incomingCall?.callerAvatar,
-        })
-
-        clearIncomingCall()
-      } catch (error) {
-        console.error("Receiver Error:",error)
-        handleEndCall()
-      }
-    }
-
-    const handleRejectCall=()=>{
-      if(incomingCall){
-        socket.emit("reject_call",{
-          callerId:incomingCall?.callerId,
-          callId:incomingCall?.callId
-        })
-      }
-      endCall()
-    }
-
-    const handleEndCall=()=>{
-      const participantId=currentCall?.participantId || incomingCall?.callerId
-      const callId=currentCall?.callId || incomingCall?.callId
-
-      if(participantId && callId){
-        socket.emit("end_call",{
-          callId:callId,
-          participantId:participantId
-        })
-      }
-      endCall()
-    }
 
     // socket event listerners
     useEffect(()=>{
@@ -345,7 +378,18 @@ const VideoCallModel = ({socket}) => {
         socket.off("webrtc_answer",handleWebRTCAnswer)
         socket.off("webrtc_ice_candidate",handleWebRTCIceCandidates)
       }
-    },[socket,peerConnection,currentCall,incomingCall,user])
+    }, [
+        socket,
+        peerConnection,
+        currentCall,
+        incomingCall,
+        user,
+        addIceCandidate,
+        endCall,
+        initializeCallerCall,
+        processIceCandidatesQueue,
+        setCallStatus
+    ])
 
     if(!isCallModelOpen && !incomingCall) return null
 

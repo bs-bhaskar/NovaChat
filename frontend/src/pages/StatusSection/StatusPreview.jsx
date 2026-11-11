@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { FaCheck, FaChevronDown, FaChevronLeft, FaChevronRight, FaEye, FaTimes, FaTrash } from 'react-icons/fa'
+import { FaChevronDown, FaChevronLeft, FaChevronRight, FaEye, FaTimes, FaTrash } from 'react-icons/fa'
 import { format } from "date-fns";
 
 const formatTimestamp = (timestamp) => {

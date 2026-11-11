@@ -38,7 +38,7 @@ useEffect(() => {
   return () => {
     disconnectSocket();
   };
-}, [user?._id, setCurrentUser, initsocketListners, cleanup]);
+}, [user, setCurrentUser, initsocketListners, cleanup]);
 
 
 

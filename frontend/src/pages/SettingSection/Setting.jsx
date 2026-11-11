@@ -6,7 +6,6 @@ import { toast } from "react-toastify";
 import Layout from "../../components/Layout";
 import { FaComment, FaMoon, FaQuestionCircle, FaSearch, FaSignInAlt, FaSun, FaUser } from "react-icons/fa";
 import { Link } from "react-router-dom";
-import { Theme } from "emoji-picker-react";
 
 const Setting = () => {
   const [isThemeDialogOpen, setIsThemeDialogOpen] = useState(false);

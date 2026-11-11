@@ -132,7 +132,7 @@ const UserDetails = () => {
           <div className='space-y-6'>
             <div className='flex flex-col items-center'>
               <div className='relative group'>
-                <img src={preview || user?.profilePicture} alt="profile picture" className='w-52 h-52 rounded-full mb-2 object-cover' />
+                <img src={preview || user?.profilePicture} alt="User profile" className='w-52 h-52 rounded-full mb-2 object-cover' />
                 <label htmlFor="profileUpload" className='absolute inset-0 bg-black bg-opacity-50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer'>
                   <div className='text-white text-center'>
                     <FaCamera className='h-8 w-8 mx-auto mb-2'/>

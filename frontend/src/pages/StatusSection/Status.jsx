@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
 import useThemeStore from '../../store/themeStore'
 import useUserStore from '../../store/useUserStore'
 import useStatusStore from '../../store/useStatusStore'
@@ -6,7 +6,7 @@ import StatusPreview from './StatusPreview'
 import Layout from '../../components/Layout'
 import { motion } from 'framer-motion'
 import { RxCross2 } from 'react-icons/rx'
-import { FaCamera, FaEllipsisH, FaPlus, FaTimes } from 'react-icons/fa'
+import { FaCamera, FaEllipsisH, FaPlus } from 'react-icons/fa'
 import { format } from 'date-fns'
 import StatusList from './StatusList'
 
@@ -30,7 +30,7 @@ const Status = () => {
   const {user}=useUserStore()
 
   // status store
-  const {statuses, loading, error, fetchStatuses, createStatus, viewStatus, deleteStatus, getStatusViewers, getUserStatuses, getOtherStatuses, clearError, reset, initializeSocket, cleanupSocket}=useStatusStore()
+  const {statuses, loading, error, fetchStatuses, createStatus, viewStatus, deleteStatus, getUserStatuses, getOtherStatuses, clearError, initializeSocket, cleanupSocket}=useStatusStore()
 
   const userStatuses=getUserStatuses(user?._id)
   const otherStatuses=getOtherStatuses(user?._id)
@@ -45,9 +45,9 @@ const Status = () => {
   }, [user?._id, fetchStatuses, initializeSocket, cleanupSocket]);
 
   // clear the error when page is mounts 
-  useEffect(()=>{
-    return ()=>clearError()
-  },[])
+  useEffect(() => {
+      return () => clearError();
+  }, [clearError]);
 
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
@@ -98,18 +98,23 @@ const Status = () => {
     }
   };
 
-  const handlePreviewClose = () => {
-    setPreviewContact(null);
-    setCurrentStatusIndex(0);
-  }
+  const handlePreviewClose = useCallback(() => {
+      setPreviewContact(null);
+      setCurrentStatusIndex(0);
+  }, []);
 
-  const handlePreviewNext = () => {
-    if (currentStatusIndex < previewContact.statuses.length - 1) {
-      setCurrentStatusIndex((prev)=> prev + 1);
-    }else{
-      handlePreviewClose()
-    }
-  };  
+  const handlePreviewNext = useCallback(() => {
+      if (!previewContact?.statuses?.length) {
+          handlePreviewClose();
+          return;
+      }
+
+      if (currentStatusIndex < previewContact.statuses.length - 1) {
+          setCurrentStatusIndex(prev => prev + 1);
+      } else {
+          handlePreviewClose();
+      }
+  }, [currentStatusIndex, previewContact, handlePreviewClose]);
 
   const handlePreviewPrev = () => {
     setCurrentStatusIndex((prev)=> Math.max(prev - 1, 0));
