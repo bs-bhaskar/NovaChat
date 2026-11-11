@@ -15,11 +15,25 @@ dotenv.config();//configure dotenv-this will automaticall featch velues from .en
 const PORT = process.env.PORT;
 const app=express();
 
-const corsOption={
-    origin:process.env.FRONTEND_URL,
-    credentials:true
-}
-app.use(cors(corsOption))
+const allowedOrigins = [
+    "http://localhost:3000",
+    "https://nova-chat-umber.vercel.app"
+];
+
+const corsOption = {
+    origin: (origin, callback) => {
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error("Not allowed by CORS"));
+        }
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"]
+};
+
+app.use(cors(corsOption));
 
 //Middleware
 app.use(express.json())//parse body data
