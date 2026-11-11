@@ -31,7 +31,6 @@ const ChatWindow = ({ selectedContact, setSelectedContact, isMobile }) => {
   const socket=getSocket()
   const {
     messages,
-    loading,
     sendMessage,
     fetchMessages,
     fetchConversations,

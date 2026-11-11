@@ -35,13 +35,14 @@ const Status = () => {
   const userStatuses=getUserStatuses(user?._id)
   const otherStatuses=getOtherStatuses(user?._id)
 
-  useEffect(()=>{
-    fetchStatuses()
-    initializeSocket()
-    return ()=>{
-      cleanupSocket()
-    }
-  },[user?._id])
+  useEffect(() => {
+      fetchStatuses();
+      initializeSocket();
+
+      return () => {
+          cleanupSocket();
+      };
+  }, [user?._id, fetchStatuses, initializeSocket, cleanupSocket]);
 
   // clear the error when page is mounts 
   useEffect(()=>{

@@ -75,7 +75,7 @@ const MessageBubble = ({ message, theme, onReact, currentUser, deleteMessage }) 
           )}
 
           {message.contentType === "image" && message.imageOrVideoUrl && (
-            <img src={message.imageOrVideoUrl} alt="Shared image" className="rounded-xl max-w-full w-auto max-h-80 object-contain"/>
+            <img src={message.imageOrVideoUrl} alt="Shared media attachment" className="rounded-xl max-w-full w-auto max-h-80 object-contain"/>
           )}
 
           {message.contentType === "video" && message.imageOrVideoUrl && (

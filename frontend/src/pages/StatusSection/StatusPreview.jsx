@@ -15,21 +15,23 @@ const StatusPreview = ({contact,currentIndex,onClose,onPrev,onNext,onDelete,them
   const currentStatus=contact?.statuses[currentIndex]
   const isOwnerStatus=contact?.id===currentUser?._id
 
-  useEffect(()=>{
-    setProgress(0)
+  useEffect(() => {
+      setProgress(0);
 
-    let current=0
+      let current = 0;
 
-    const interval= setInterval(()=>{
-      current+=2//increase process by 2% event 1--ms 50 steps=5 second
-      setProgress(current)
-      if(current>=100){
-        clearInterval(interval)
-        onNext()
-      }
-    },100)
-    return ()=> clearInterval(interval)
-  },[currentIndex])
+      const interval = setInterval(() => {
+          current += 2;
+          setProgress(current);
+
+          if (current >= 100) {
+              clearInterval(interval);
+              onNext();
+          }
+      }, 100);
+
+      return () => clearInterval(interval);
+  }, [currentIndex, onNext]);
 
   const handleViewersToggle=()=>{
     setShowViewers(!showViewers)

@@ -5,9 +5,34 @@ import useThemeStore from '../../store/themeStore'
 import {FaMicrophone, FaMicrophoneSlash, FaPhoneSlash, FaTimes, FaVideo, FaVideoSlash} from "react-icons/fa"
 
 const VideoCallModel = ({socket}) => {
-    const localVideoRef=useRef(null)
-    const remoteVideoRef=useRef(null)
-    const {currentCall,incomingCall,isCallActive,callType,localStream,remoteStream,isVideoEnabled,peerConnection,iceCandidatesQueue,isCallModelOpen,callStatus,setIncomingCall,isAudioEnabled,setCurrentCall,setCallType,setCallModelOpen,endCall,setCallStatus,setCallActive,setLocalStream,setRemoteStream,setPeerConnection,addIceCandidate,processIceCandidatesQueue,toggleVideo,toggleAudio,clearIncomingCall}=useVideoCallStore()
+        const localVideoRef=useRef(null)
+        const remoteVideoRef=useRef(null)
+        const {
+        currentCall,
+        incomingCall,
+        isCallActive,
+        callType,
+        localStream,
+        remoteStream,
+        isVideoEnabled,
+        peerConnection,
+        isCallModelOpen,
+        callStatus,
+        isAudioEnabled,
+        setCurrentCall,
+        endCall,
+        setCallStatus,
+        setCallActive,
+        setLocalStream,
+        setRemoteStream,
+        setPeerConnection,
+        addIceCandidate,
+        processIceCandidatesQueue,
+        toggleVideo,
+        toggleAudio,
+        clearIncomingCall
+    } = useVideoCallStore();
+    
     const {user}=useUserStore()
     const {theme}=useThemeStore()
     
