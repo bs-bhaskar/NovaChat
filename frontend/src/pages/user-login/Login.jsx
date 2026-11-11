@@ -27,7 +27,9 @@ const loginValidationSchema = yup
       .notRequired()
       .matches(/^\d+$/, "Phone number must be digits")
       .transform((value, originalValue) =>
-        originalValue.trim() === "" ? null : value,
+        typeof originalValue === "string" && originalValue.trim() === ""
+            ? null
+            : value
       ),
     email: yup
       .string()
@@ -35,14 +37,16 @@ const loginValidationSchema = yup
       .notRequired()
       .email("please enter valid email")
       .transform((value, originalValue) =>
-        originalValue.trim() === "" ? null : value,
+        typeof originalValue === "string" && originalValue.trim() === ""
+            ? null
+            : value
       ),
   })
   .test(
     "at-least-one",
     "Either email or phone number is required",
     function (value) {
-      return !!(value.phoneNumber || value.email);
+      return !!(value?.phoneNumber || value?.email);
     },
   );
 
@@ -86,11 +90,12 @@ const Login = () => {
   const [loading, setLoading]=useState(false)
 
   const {
-    register: loginRegister,
-    handleSubmit: handleLoginSubmit,
-    formState: { errors: loginErrors },
+      register: loginRegister,
+      handleSubmit: handleLoginSubmit,
+      setValue: setLoginValue,
+      formState: { errors: loginErrors },
   } = useForm({
-    resolver: yupResolver(loginValidationSchema),
+      resolver: yupResolver(loginValidationSchema),
   });
 
   const {
@@ -158,6 +163,8 @@ const Login = () => {
       }
       if(response.status==='success'){
         toast.success("OTP varified successfully")
+        const token=response.data?.token
+        localStorage.setItem('auth_token', token)
         const user= response.data?.user
         if(user?.username && user?.profilePicture){
           setUser(user)
@@ -210,15 +217,21 @@ const Login = () => {
     }
   }
 
-  const handleOtpChange=(index, value)=>{
-    const newOtp=[...otp]
-    newOtp [index]=value
-    setOtp(newOtp)
-    setOtpValue("otp", newOtp.join(""))
-    if(value && index <5){
-      document.getElementById(`otp-${index+1}`).focus()
-    }
-  }
+  const handleOtpChange = (index, value) => {
+      const digit = value.replace(/\D/g, "").slice(-1);
+
+      const newOtp = [...otp];
+      newOtp[index] = digit;
+
+      setOtp(newOtp);
+      setOtpValue("otp", newOtp.join(""), {
+          shouldValidate: true,
+      });
+
+      if (digit && index < 5) {
+          document.getElementById(`otp-${index + 1}`)?.focus();
+      }
+  };
 
   const ProgressBar = () => {
     return (
@@ -311,7 +324,20 @@ const Login = () => {
                   )}
 
                 </div>
-                <input type="text" {...loginRegister("phoneNumber")} value={phoneNumber} onChange={(e)=>setPhoneNumber(e.target.value)} placeholder="Phone number" className={`w-2/3 px-4 py-2 border ${theme==="dark"?"bg-gray-700 border-gray-600 text-white":"bg-white border-gray-300"} rounded-md focus:outline-none focus:right-2 focus:ring-green-500 ${loginErrors.phoneNumber?"border-red-500":""}`} />
+                <input
+                  type="text"
+                  {...loginRegister("phoneNumber")}
+                  value={phoneNumber}
+                  onChange={(e) => {
+                      const value = e.target.value.replace(/\D/g, "");
+                      setPhoneNumber(value);
+                      setLoginValue("phoneNumber", value, {
+                          shouldValidate: true,
+                      });
+                  }}
+                  placeholder="Phone number"
+                  className={`w-2/3 px-4 py-2 border ${theme==="dark"?"bg-gray-700 border-gray-600 text-white":"bg-white border-gray-300"} rounded-md focus:outline-none focus:ring-green-500 ${loginErrors.phoneNumber?"border-red-500":""}`}
+              />
               </div>
               {loginErrors.phoneNumber && (
                 <p className="text-red-500 text-sm">{loginErrors.phoneNumber.message}</p>
@@ -340,10 +366,16 @@ const Login = () => {
                     type="email"
                     {...loginRegister("email")}
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => {
+                        const value = e.target.value;
+                        setEmail(value);
+                        setLoginValue("email", value, {
+                            shouldValidate: true,
+                        });
+                    }}
                     placeholder="Email (optional)"
                     className={`w-full bg-transparent focus:outline-none ${
-                      theme === "dark" ? "text-white" : "text-black"
+                        theme === "dark" ? "text-white" : "text-black"
                     }`}
                   />
 
