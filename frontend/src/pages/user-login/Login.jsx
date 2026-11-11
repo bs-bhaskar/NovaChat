@@ -458,9 +458,15 @@ const Login = () => {
               <input {...profileRegister('agreed')} type="checkbox" className={`rounded ${theme==='dark'?"text-green-500 bg-gray-700":"text-green-500"} focus:ring-green-500`} />
               <label htmlFor="terms" className={`text-sm ${theme==='dark'?"text-gray-300":"text-gray-700"}`}>
                 I agree to the {""}
-                <a href="#" className="text-red-500 hover:underline">
-                  Terms and Conditions
-                </a>
+                <button
+                    type="button"
+                    onClick={() => {
+                        // Terms page navigation yahan add karna
+                    }}
+                    className="text-red-500 hover:underline"
+                >
+                    Terms and Conditions
+                </button>
               </label>
               {profileErrors.agreed &&(
                 <p className="text-red-500 text-sm mt-1">

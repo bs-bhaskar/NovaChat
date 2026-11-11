@@ -96,7 +96,7 @@ const StatusPreview = ({contact,currentIndex,onClose,onPrev,onNext,onDelete,them
                 </p>
               </div>
             ):currentStatus.contentType==='image'?(
-              <img src={currentStatus.media} alt="image" className="max-w-full max-h-full object-contain"/>
+              <img src={currentStatus.media} alt="Shared media" className="max-w-full max-h-full object-contain"/>
             ):currentStatus.contentType==='video'?(
                 <video
                     src={currentStatus.media}

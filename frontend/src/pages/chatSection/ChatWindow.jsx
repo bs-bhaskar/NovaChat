@@ -77,9 +77,9 @@ const ChatWindow = ({ selectedContact, setSelectedContact, isMobile }) => {
   }, [selectedContact?._id, conversations?.data, fetchMessages]);
 
 
-  useEffect(()=>{
-    fetchConversations()
-  }, [])
+  useEffect(() => {
+    fetchConversations();
+  }, [fetchConversations]);
 
   const scrollToBottom=()=>{
     messageEndRef.current?.scrollIntoView({behavior:"auto"})

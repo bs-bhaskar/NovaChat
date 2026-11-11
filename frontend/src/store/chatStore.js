@@ -208,7 +208,6 @@ export const useChatStore= create((set,get)=>({
                     ? "video"
                     : "unsupported";
 
-        const socket= getSocket()
         const {conversations}=get()
         let conversationId=null
         if(conversations?.data?.length>0){
@@ -288,11 +287,11 @@ export const useChatStore= create((set,get)=>({
         const isForCurrentUser =
             receiverId !== "" && receiverId === currentUserId;
 
+        const currentConversationId = String(currentConversation ?? "");
+
         const isActiveConversation =
             messageConversationId !== "" &&
             messageConversationId === currentConversationId;
-
-        const currentConversationId = String(currentConversation ?? "");
 
         if (messageConversationId === currentConversationId) {
             set((state)=>({
