@@ -9,7 +9,7 @@ const token=()=>localStorage.getItem('auth_token')
 export const initializeSocket=()=>{
     if(socket) return socket
 
-    const BACKEND_URL=process.env.REACT_APP_API_URL
+    const BACKEND_URL=process.env.FRONTEND_URL
 
     socket=io (BACKEND_URL,{
         auth: {
