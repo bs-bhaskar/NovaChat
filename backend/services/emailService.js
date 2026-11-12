@@ -12,7 +12,8 @@ const transporter = nodemailer.createTransport({
 
 transporter.verify((error,success)=>{
     if(error){
-        console.error('Gmail services connection failed')
+        // console.error('Gmail services connection failed')
+        console.error('Gmail connection error:', error);
     }
     else{
         console.log('Gmail configured properly and ready to send email')
@@ -45,7 +46,7 @@ const sendOtpToEmail=async (email,otp)=>{
   `;
 
   await transporter.sendMail({
-    from:`NovaChat Web < ${process.env.EMAIL_USER}>`,
+    from:`NovaChat Web <${process.env.EMAIL_USER}>`,
     to:email,
     subject:'Your NovaChat Verification',
     html,
