@@ -1,56 +1,55 @@
-const nodemailer = require('nodemailer')
-const dotenv = require('dotenv')
-dotenv.config();
 
-const transporter = nodemailer.createTransport({
-    service:'gmail',
-    auth:{
-        user:process.env.EMAIL_USER,
-        pass:process.env.EMAIL_PASS
-    }
-})
+const { google } = require('googleapis');
+require('dotenv').config();
 
-transporter.verify((error,success)=>{
-    if(error){
-        // console.error('Gmail services connection failed')
-        console.error('Gmail connection error:', error);
-    }
-    else{
-        console.log('Gmail configured properly and ready to send email')
-    }
+const oauth2Client = new google.auth.OAuth2(
+    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_SECRET
+);
+
+oauth2Client.setCredentials({
+    refresh_token: process.env.GOOGLE_REFRESH_TOKEN
 });
 
-const sendOtpToEmail=async (email,otp)=>{
-      const html = `
+const gmail = google.gmail({
+    version: 'v1',
+    auth: oauth2Client
+});
+
+const sendOtpToEmail = async (email, otp) => {
+    const html = `
     <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
-      <h2 style="color: #075e54;">🔐 NovaChat Verification</h2>
-      
-      <p>Hi there,</p>
-      
-      <p>Your one-time password (OTP) to verify your NovaChat Web account is:</p>
-      
-      <h1 style="background: #e0f7fa; color: #000; padding: 10px 20px; display: inline-block; border-radius: 5px; letter-spacing: 2px;">
-        ${otp}
-      </h1>
+        <h2 style="color: #075e54;">🔐 NovaChat Verification</h2>
+        <p>Hi there,</p>
+        <p>Your one-time password (OTP) to verify your NovaChat account is:</p>
+        <h1 style="background: #e0f7fa; color: #000; padding: 10px 20px; display: inline-block; border-radius: 5px; letter-spacing: 2px;">
+            ${otp}
+        </h1>
+        <p><strong>This OTP is valid for 5 minutes.</strong> Please do not share it with anyone.</p>
+        <p>If you didn't request this OTP, please ignore this email.</p>
+        <p>Thanks & Regards,<br/>NovaChat Web Security Team</p>
+        <hr />
+        <small>This is an automated message. Please do not reply.</small>
+    </div>`;
 
-      <p><strong>This OTP is valid for the next 5 minutes.</strong> Please do not share this code with anyone.</p>
+    const message = [
+        `From: NovaChat Web <${process.env.EMAIL_USER}>`,
+        `To: ${email}`,
+        'Subject: Your NovaChat Verification',
+        'MIME-Version: 1.0',
+        'Content-Type: text/html; charset=UTF-8',
+        '',
+        html
+    ].join('\r\n');
 
-      <p>If you didn’t request this OTP, please ignore this email.</p>
+    const raw = Buffer.from(message).toString('base64url');
 
-      <p style="margin-top: 20px;">Thanks & Regards,<br/>NovaChat Web Security Team</p>
+    await gmail.users.messages.send({
+        userId: 'me',
+        requestBody: { raw }
+    });
 
-      <hr style="margin: 30px 0;" />
+    console.log(`OTP email sent successfully to ${email}`);
+};
 
-      <small style="color: #777;">This is an automated message. Please do not reply.</small>
-    </div>
-  `;
-
-  await transporter.sendMail({
-    from:`NovaChat Web <${process.env.EMAIL_USER}>`,
-    to:email,
-    subject:'Your NovaChat Verification',
-    html,
-  });
-}
-
-module.exports=sendOtpToEmail;
+module.exports = sendOtpToEmail;
